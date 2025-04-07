@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for user roles
+enum Role {
+  CLIENT
+  CONSULTANT
+  ADMIN
+}
+
+// Enum for onboarding status
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Base User model with shared fields
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  password        String
+  role            Role           @default(CLIENT)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  clientProfile   ClientProfile?
+  consultantProfile ConsultantProfile?
+}
+
+// Client Profile model
+model ClientProfile {
+  id                 String          @id @default(uuid())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String          @unique
+  fullName           String
+  phoneNumber        String
+  organization       String
+  additionalContact  String?
+  
+  // Services
+  isoService         Boolean         @default(false)
+  testingServices    Boolean         @default(false)
+  riskAssessment     Boolean         @default(false)
+  businessImpactAnalysis Boolean    @default(false)
+  privacyImpactAnalysis Boolean     @default(false)
+  dataAssurance      Boolean         @default(false)
+  audit              Boolean         @default(false)
+  awarenessTraining  Boolean         @default(false)
+  tabletopExercise   Boolean         @default(false)
+  other              Boolean         @default(false)
+  otherDetails       String?
+
+  // Discovery
+  discoveryMethod    String?         // 'call' or 'form'
+  scopingDetails     Json?           // For additional scoping form fields
+
+  // Interview
+  interviewDate      String?
+  interviewTime      String?
+
+  // Legal
+  termsAccepted      Boolean         @default(false)
+  
+  // Onboarding status
+  currentStep        Int             @default(0)
+  onboardingStatus   OnboardingStatus @default(NOT_STARTED)
+  
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+// Consultant Profile model
+model ConsultantProfile {
+  id                 String          @id @default(uuid())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String          @unique
+  organizationWebsite String
+  contactName        String
+  contactInfo        String
+  industry           String
+  firstName          String
+  lastName           String
+  position           String
+  experience         String
+  dateOfBirth        String
+  
+  // Onboarding status
+  onboardingStatus   OnboardingStatus @default(NOT_STARTED)
+  
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
