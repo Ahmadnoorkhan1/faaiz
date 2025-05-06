@@ -187,13 +187,10 @@ const Documents: React.FC = () => {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
+      {
+       (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDocuments.map((doc) => (
+          {filteredDocuments?.map((doc) => (
             <div key={doc.id} className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg hover:bg-[#242935] transition-colors">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">

@@ -122,11 +122,8 @@ const ScheduledCalls: React.FC = () => {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
+      { 
+      (
         <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
           <div className="overflow-x-auto">
             <table className="w-full">

@@ -146,6 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
 
   return (
     <div 
+    style={{scrollbarWidth: 'none'}}
       className={`fixed left-0 top-0 h-full bg-[#1a1f2b] flex flex-col items-center py-4 space-y-8 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
@@ -170,7 +171,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 w-full px-2 overflow-y-auto">
+      <nav     style={{scrollbarWidth: 'none'}}
+  className="flex-1 w-full px-2 overflow-y-auto">
         <ul className="space-y-4">
           {menuItems.map((item, index) => (
             <li key={index}>
@@ -212,9 +214,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
         </button>
       )}
 
+
       {/* Help Icon */}
       <button 
-        className="text-gray-400 hover:text-gray-300 p-2 relative group"
+        className="text-gray-400  hover:text-gray-300 p-2 relative group"
         onMouseEnter={() => isCollapsed && setShowTooltip('Help')}
         onMouseLeave={() => setShowTooltip(null)}
       >
@@ -227,7 +230,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
           </div>
         )}
       </button>
-    </div>
+      </div>
   );
 };
 

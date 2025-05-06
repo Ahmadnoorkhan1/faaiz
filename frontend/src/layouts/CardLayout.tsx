@@ -7,7 +7,7 @@ interface CardLayoutProps {
 
 const CardLayout: React.FC<CardLayoutProps> = ({ children, title }) => {
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm border border-neutral-100 p-6 md:p-8">
         {title && (
           <h1 className="text-2xl font-semibold text-neutral-900 mb-6">

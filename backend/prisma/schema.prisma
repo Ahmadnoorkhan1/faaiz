@@ -84,160 +84,160 @@ enum TaskStatus {
 }
 
 model User {
-  id                  String              @id @default(uuid())
-  email               String              @unique
-  password            String
-  role                UserRoleType        @default(CLIENT)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  clientProfile       ClientProfile?
-  consultantProfile   ConsultantProfile?
-  
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  role              UserRoleType       @default(CLIENT)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  clientProfile     ClientProfile?
+  consultantProfile ConsultantProfile?
+
   // Microsoft authentication fields
   microsoftAccessToken    String?
   microsoftRefreshToken   String?
   microsoftTokenExpiresAt DateTime?
-  
+
   // Relations for ScheduledCall
-  clientCalls         ScheduledCall[]     @relation("ClientCalls")
-  consultantCalls     ScheduledCall[]     @relation("ConsultantCalls")
-  
+  clientCalls     ScheduledCall[] @relation("ClientCalls")
+  consultantCalls ScheduledCall[] @relation("ConsultantCalls")
+
   // Relations for Document
-  uploadedDocuments   Document[]          @relation("DocumentUploader")
-  clientDocuments     Document[]          @relation("ClientDocuments")
-  consultantDocuments Document[]          @relation("ConsultantDocuments")
-  
+  uploadedDocuments   Document[] @relation("DocumentUploader")
+  clientDocuments     Document[] @relation("ClientDocuments")
+  consultantDocuments Document[] @relation("ConsultantDocuments")
+
   // Project relations
-  clientProjects      Project[]           @relation("ClientProjects")
-  consultantProjects  Project[]           @relation("ConsultantProjects")
-  
+  clientProjects     Project[] @relation("ClientProjects")
+  consultantProjects Project[] @relation("ConsultantProjects")
+
   // RBAC relations
-  userRoles           UserRoleAssignment[]
-  
+  userRoles UserRoleAssignment[]
+
   // Communication
-  chatRooms           ChatRoomParticipant[]
-  messages            Message[]
-  assignedTasks       Task[]              @relation("AssignedTasks")
-  createdTasks        Task[]              @relation("CreatedTasks")
-  eventAttendees      EventAttendee[]
+  chatRooms      ChatRoomParticipant[]
+  messages       Message[]
+  assignedTasks  Task[]                @relation("AssignedTasks")
+  createdTasks   Task[]                @relation("CreatedTasks")
+  eventAttendees EventAttendee[]
 }
 
 model ClientProfile {
-  id                 String             @id @default(uuid())
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId             String             @unique
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 
-  fullName           String
-  phoneNumber        String
-  organization       String
-  additionalContact  String?
+  fullName          String
+  phoneNumber       String
+  organization      String
+  additionalContact String?
 
-  requestedServices  ServiceType[]      @default([])  // replaces all the booleans
-  otherDetails       String?
+  requestedServices ServiceType[] @default([]) // replaces all the booleans
+  otherDetails      String?
 
   // Discovery
-  discoveryMethod    String?            // 'call' or 'form'
-  scopingDetails     Json?
+  discoveryMethod String? // 'call' or 'form'
+  scopingDetails  Json?
 
   // Interview
-  interviewDate      String?
-  interviewTime      String?
+  interviewDate String?
+  interviewTime String?
 
   // Legal
-  termsAccepted      Boolean            @default(false)
+  termsAccepted Boolean @default(false)
 
-  currentStep        Int                @default(0)
-  onboardingStatus   OnboardingStatus   @default(NOT_STARTED)
+  currentStep      Int              @default(0)
+  onboardingStatus OnboardingStatus @default(NOT_STARTED)
 
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ConsultantProfile {
-  id                 String             @id @default(uuid())
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId             String             @unique
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 
   organizationWebsite String
-  contactFirstName   String
-  contactLastName    String
-  email              String
-  phone              String
+  contactFirstName    String
+  contactLastName     String
+  email               String
+  phone               String
 
-  industry           String
-  position           String
-  experience         String
-  dateOfBirth        DateTime
-  certifications     String[]           @default([])
-  cvUrl              String?
+  industry       String
+  position       String
+  experience     String
+  dateOfBirth    DateTime
+  certifications String[] @default([])
+  cvUrl          String?
 
-  servicesOffered    ServiceType[]      @default([])
-  otherDetails       String?
+  servicesOffered ServiceType[] @default([])
+  otherDetails    String?
 
   // NDA fields
-  ndaSigned          Boolean            @default(false)
-  ndaSignatureDate   DateTime?
-  ndaSignatureUrl    String?            // For storing digital signature image
+  ndaSigned        Boolean   @default(false)
+  ndaSignatureDate DateTime?
+  ndaSignatureUrl  String? // For storing digital signature image
 
-  profileCompleted   Boolean            @default(false)
-  onboardingStatus   OnboardingStatus   @default(NOT_STARTED)
+  profileCompleted Boolean          @default(false)
+  onboardingStatus OnboardingStatus @default(NOT_STARTED)
 
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ScheduledCall {
-  id                String      @id @default(uuid())
-  title             String
-  description       String?
-  startTime         DateTime
-  endTime           DateTime
-  status            CallStatus  @default(SCHEDULED)
-  teamsMeetingLink  String?
-  client            User        @relation("ClientCalls", fields: [clientId], references: [id])
-  clientId          String
-  consultant        User        @relation("ConsultantCalls", fields: [consultantId], references: [id])
-  consultantId      String
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id               String     @id @default(uuid())
+  title            String
+  description      String?
+  startTime        DateTime
+  endTime          DateTime
+  status           CallStatus @default(SCHEDULED)
+  teamsMeetingLink String?
+  client           User       @relation("ClientCalls", fields: [clientId], references: [id])
+  clientId         String
+  consultant       User       @relation("ConsultantCalls", fields: [consultantId], references: [id])
+  consultantId     String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
 
 model Document {
-  id                String        @id @default(uuid())
-  fileUrl           String
-  fileType          String
-  documentType      DocumentType
-  uploadedBy        User          @relation("DocumentUploader", fields: [uploadedById], references: [id])
-  uploadedById      String
-  client            User?         @relation("ClientDocuments", fields: [clientId], references: [id])
-  clientId          String?
-  consultant        User?         @relation("ConsultantDocuments", fields: [consultantId], references: [id])
-  consultantId      String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id           String       @id @default(uuid())
+  fileUrl      String
+  fileType     String
+  documentType DocumentType
+  uploadedBy   User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedById String
+  client       User?        @relation("ClientDocuments", fields: [clientId], references: [id])
+  clientId     String?
+  consultant   User?        @relation("ConsultantDocuments", fields: [consultantId], references: [id])
+  consultantId String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Project {
-  id              String        @id @default(uuid())
-  name            String
-  description     String?
-  status          ProjectStatus @default(ACTIVE)
-  startDate       DateTime
-  endDate         DateTime?
-  
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime
+  endDate     DateTime?
+
   // Relations
-  client          User?         @relation("ClientProjects", fields: [clientId], references: [id])
-  clientId        String?
-  consultant      User?         @relation("ConsultantProjects", fields: [consultantId], references: [id])
-  consultantId    String?
-  
+  client       User?   @relation("ClientProjects", fields: [clientId], references: [id])
+  clientId     String?
+  consultant   User?   @relation("ConsultantProjects", fields: [consultantId], references: [id])
+  consultantId String?
+
   // Communication & Task management
-  tasks           Task[]
-  events          Event[]
-  chatRooms       ChatRoom[]
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  tasks     Task[]
+  events    Event[]
+  chatRooms ChatRoom[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Permission {
@@ -245,144 +245,144 @@ model Permission {
   name        String         @unique
   description String?
   type        PermissionType
-  resource    String         // e.g., "projects", "clients", "consultants"
-  
+  resource    String // e.g., "projects", "clients", "consultants"
+
   // Relations
-  roles       RolePermission[]
-  
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  roles RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RoleDefinition {
-  id          String               @id @default(uuid())
-  name        String               @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  
+
   // Relations
   permissions RolePermission[]
   users       UserRoleAssignment[]
-  
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RolePermission {
-  role        RoleDefinition      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId      String
-  permission  Permission          @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String
+  permission   Permission     @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   permissionId String
-  
+
   @@id([roleId, permissionId])
 }
 
 model UserRoleAssignment {
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  role        RoleDefinition      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId      String
-  
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  role   RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@id([userId, roleId])
-  
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
 }
 
 model Config {
-  id          String       @id @default(uuid())
-  key         String       @unique
+  id          String  @id @default(uuid())
+  key         String  @unique
   value       String
-  category    String       // e.g., "branding", "notifications", "system"
+  category    String // e.g., "branding", "notifications", "system"
   description String?
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ChatRoom {
-  id          String       @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   description String?
-  isGroup     Boolean      @default(false)
-  
+  isGroup     Boolean @default(false)
+
   // Relations
-  messages    Message[]
+  messages     Message[]
   participants ChatRoomParticipant[]
-  projectId   String?      // Optional connection to a project
-  project     Project?     @relation(fields: [projectId], references: [id])
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  projectId    String? // Optional connection to a project
+  project      Project?              @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ChatRoomParticipant {
-  chatRoom    ChatRoom     @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
-  chatRoomId  String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  status      UserStatus   @default(OFFLINE)
-  lastSeen    DateTime?
-  
+  chatRoom   ChatRoom   @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoomId String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  status     UserStatus @default(OFFLINE)
+  lastSeen   DateTime?
+
   @@id([chatRoomId, userId])
 }
 
 model Message {
-  id          String       @id @default(uuid())
-  content     String
-  
+  id      String @id @default(uuid())
+  content String
+
   // Relations
-  chatRoom    ChatRoom     @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
-  chatRoomId  String
-  sender      User         @relation(fields: [senderId], references: [id])
-  senderId    String
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoomId String
+  sender     User     @relation(fields: [senderId], references: [id])
+  senderId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Task {
-  id          String       @id @default(uuid())
+  id          String     @id @default(uuid())
   title       String
   description String?
-  status      TaskStatus   @default(TODO)
+  status      TaskStatus @default(TODO)
   dueDate     DateTime?
-  
+
   // Relations
-  project     Project?     @relation(fields: [projectId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
   projectId   String?
-  assignee    User?        @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  assignee    User?    @relation("AssignedTasks", fields: [assigneeId], references: [id])
   assigneeId  String?
-  createdBy   User         @relation("CreatedTasks", fields: [createdById], references: [id])
+  createdBy   User     @relation("CreatedTasks", fields: [createdById], references: [id])
   createdById String
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Event {
-  id          String       @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String?
   startTime   DateTime
   endTime     DateTime
   location    String?
-  isAllDay    Boolean      @default(false)
-  
+  isAllDay    Boolean  @default(false)
+
   // Relations
-  project     Project?     @relation(fields: [projectId], references: [id])
-  projectId   String?
-  attendees   EventAttendee[]
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  project   Project?        @relation(fields: [projectId], references: [id])
+  projectId String?
+  attendees EventAttendee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EventAttendee {
-  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId     String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  status      String       @default("pending") // "pending", "accepted", "declined"
-  
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  status  String @default("pending") // "pending", "accepted", "declined"
+
   @@id([eventId, userId])
 }

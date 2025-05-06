@@ -12,7 +12,7 @@ import { ProfileProvider } from "./utils/ProfileContext";
 import Layout from "./layouts/Layouts";
 import HomePage from "./pages/Hompage";
 import Login from "./pages/Login";
-import ClientOnboarding from "./pages/ClientOnboarding";
+import ClientOnboarding from './pages/ClientOnboarding';
 import ConsultantOnboarding from "./pages/ConsultantOnboarding";
 import Services from "./pages/Services";
 import UseCases from "./pages/UseCases";

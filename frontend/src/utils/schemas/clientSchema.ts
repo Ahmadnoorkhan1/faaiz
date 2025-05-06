@@ -26,7 +26,7 @@ export const clientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   
   // Step 1: Basic Info
-  requestedServices: z.array(ServiceType).optional().default([]),
+  requestedServices: z.array(z.string()).min(1, "Please select at least one service"),
   otherDetails: z.string().optional(),
   
   // Step 2: Personal Info
