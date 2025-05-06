@@ -1,14 +1,21 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import session from "express-session";
 import { connectDB } from "./config/db.js";
-import { errorHandler } from "./src/middleware/error.js";
+// import { errorHandler } from "./src/middleware/error.js";
 
-// Import routes
-import authRoutes from "./src/routes/authRoutes.js";
-import userRoutes from "./src/routes/userRoutes.js";
-import clientRoutes from "./src/routes/clientRoutes.js";
-import consultantRoutes from "./src/routes/consultantRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import consultantRoutes from "./routes/consultantRoutes.js";
+import scheduledCallRoutes from "./routes/scheduledCallRoutes.js";
+import documentRoutes from "./routes/documentRoutes.js";
+import microsoftAuthRoutes from './routes/microsoftAuthRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import clientRoutes from './routes/clientRoutes.js';
+import roleRoutes from './routes/roleRoutes.js';
+import configRoutes from './routes/configRoutes.js';
+// import userRoutes from "./src/routes/userRoutes.js";
+// import clientRoutes from "./src/routes/clientRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -16,15 +23,37 @@ dotenv.config();
 // Create Express app
 const app = express();
 
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  credentials: true
+}));
 app.use(express.json());
+app.use('/uploads', express.static('uploads')); // Serve uploaded files
 
 // Mount routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/clients', clientRoutes);
 app.use('/api/consultants', consultantRoutes);
+app.use('/api/scheduled-calls', scheduledCallRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/microsoft', microsoftAuthRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/config', configRoutes);
+// app.use('/api/users', userRoutes);
+// app.use('/api/clients', clientRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -32,7 +61,7 @@ app.get('/', (req, res) => {
 });
 
 // Error handling middleware
-app.use(errorHandler);
+// app.use(errorHandler);
 
 // Port
 const PORT = process.env.PORT || 5000;

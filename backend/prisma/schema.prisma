@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,92 +7,382 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enum for user roles
-enum Role {
+enum UserRoleType {
   CLIENT
   CONSULTANT
   ADMIN
 }
 
-// Enum for onboarding status
 enum OnboardingStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
 }
 
-// Base User model with shared fields
-model User {
-  id              String         @id @default(uuid())
-  email           String         @unique
-  password        String
-  role            Role           @default(CLIENT)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  clientProfile   ClientProfile?
-  consultantProfile ConsultantProfile?
+// Reusable enum for services offered/requested
+enum ServiceType {
+  ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM
+  ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM
+  ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM
+  ISO_27017_CLOUD_SECURITY_CONTROLS
+  ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD
+  ISO_20000_SERVICE_MANAGEMENT
+  ISO_12207_SOFTWARE_LIFE_CYCLE
+  ISO_42001_AI_MANAGEMENT_SYSTEM
+  TESTING_SERVICES
+  RISK_ASSESSMENT
+  BUSINESS_IMPACT_ANALYSIS
+  PRIVACY_IMPACT_ANALYSIS
+  DATA_ASSURANCE
+  AUDIT
+  AWARENESS_TRAINING
+  TABLETOP_EXERCISE
+  OTHER
 }
 
-// Client Profile model
+enum CallStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum DocumentType {
+  PROPOSAL
+  REPORT
+  CONTRACT
+  CERTIFICATE
+  OTHER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum PermissionType {
+  READ
+  WRITE
+  DELETE
+  ADMIN
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  DO_NOT_DISTURB
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+model User {
+  id                  String              @id @default(uuid())
+  email               String              @unique
+  password            String
+  role                UserRoleType        @default(CLIENT)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  clientProfile       ClientProfile?
+  consultantProfile   ConsultantProfile?
+  
+  // Microsoft authentication fields
+  microsoftAccessToken    String?
+  microsoftRefreshToken   String?
+  microsoftTokenExpiresAt DateTime?
+  
+  // Relations for ScheduledCall
+  clientCalls         ScheduledCall[]     @relation("ClientCalls")
+  consultantCalls     ScheduledCall[]     @relation("ConsultantCalls")
+  
+  // Relations for Document
+  uploadedDocuments   Document[]          @relation("DocumentUploader")
+  clientDocuments     Document[]          @relation("ClientDocuments")
+  consultantDocuments Document[]          @relation("ConsultantDocuments")
+  
+  // Project relations
+  clientProjects      Project[]           @relation("ClientProjects")
+  consultantProjects  Project[]           @relation("ConsultantProjects")
+  
+  // RBAC relations
+  userRoles           UserRoleAssignment[]
+  
+  // Communication
+  chatRooms           ChatRoomParticipant[]
+  messages            Message[]
+  assignedTasks       Task[]              @relation("AssignedTasks")
+  createdTasks        Task[]              @relation("CreatedTasks")
+  eventAttendees      EventAttendee[]
+}
+
 model ClientProfile {
-  id                 String          @id @default(uuid())
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId             String          @unique
+  id                 String             @id @default(uuid())
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String             @unique
+
   fullName           String
   phoneNumber        String
   organization       String
   additionalContact  String?
-  
-  // Services
-  isoService         Boolean         @default(false)
-  testingServices    Boolean         @default(false)
-  riskAssessment     Boolean         @default(false)
-  businessImpactAnalysis Boolean    @default(false)
-  privacyImpactAnalysis Boolean     @default(false)
-  dataAssurance      Boolean         @default(false)
-  audit              Boolean         @default(false)
-  awarenessTraining  Boolean         @default(false)
-  tabletopExercise   Boolean         @default(false)
-  other              Boolean         @default(false)
+
+  requestedServices  ServiceType[]      @default([])  // replaces all the booleans
   otherDetails       String?
 
   // Discovery
-  discoveryMethod    String?         // 'call' or 'form'
-  scopingDetails     Json?           // For additional scoping form fields
+  discoveryMethod    String?            // 'call' or 'form'
+  scopingDetails     Json?
 
   // Interview
   interviewDate      String?
   interviewTime      String?
 
   // Legal
-  termsAccepted      Boolean         @default(false)
-  
-  // Onboarding status
-  currentStep        Int             @default(0)
-  onboardingStatus   OnboardingStatus @default(NOT_STARTED)
-  
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  termsAccepted      Boolean            @default(false)
+
+  currentStep        Int                @default(0)
+  onboardingStatus   OnboardingStatus   @default(NOT_STARTED)
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 }
 
-// Consultant Profile model
 model ConsultantProfile {
-  id                 String          @id @default(uuid())
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId             String          @unique
+  id                 String             @id @default(uuid())
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String             @unique
+
   organizationWebsite String
-  contactName        String
-  contactInfo        String
+  contactFirstName   String
+  contactLastName    String
+  email              String
+  phone              String
+
   industry           String
-  firstName          String
-  lastName           String
   position           String
   experience         String
-  dateOfBirth        String
+  dateOfBirth        DateTime
+  certifications     String[]           @default([])
+  cvUrl              String?
+
+  servicesOffered    ServiceType[]      @default([])
+  otherDetails       String?
+
+  // NDA fields
+  ndaSigned          Boolean            @default(false)
+  ndaSignatureDate   DateTime?
+  ndaSignatureUrl    String?            // For storing digital signature image
+
+  profileCompleted   Boolean            @default(false)
+  onboardingStatus   OnboardingStatus   @default(NOT_STARTED)
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model ScheduledCall {
+  id                String      @id @default(uuid())
+  title             String
+  description       String?
+  startTime         DateTime
+  endTime           DateTime
+  status            CallStatus  @default(SCHEDULED)
+  teamsMeetingLink  String?
+  client            User        @relation("ClientCalls", fields: [clientId], references: [id])
+  clientId          String
+  consultant        User        @relation("ConsultantCalls", fields: [consultantId], references: [id])
+  consultantId      String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Document {
+  id                String        @id @default(uuid())
+  fileUrl           String
+  fileType          String
+  documentType      DocumentType
+  uploadedBy        User          @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedById      String
+  client            User?         @relation("ClientDocuments", fields: [clientId], references: [id])
+  clientId          String?
+  consultant        User?         @relation("ConsultantDocuments", fields: [consultantId], references: [id])
+  consultantId      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  description     String?
+  status          ProjectStatus @default(ACTIVE)
+  startDate       DateTime
+  endDate         DateTime?
   
-  // Onboarding status
-  onboardingStatus   OnboardingStatus @default(NOT_STARTED)
+  // Relations
+  client          User?         @relation("ClientProjects", fields: [clientId], references: [id])
+  clientId        String?
+  consultant      User?         @relation("ConsultantProjects", fields: [consultantId], references: [id])
+  consultantId    String?
   
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  // Communication & Task management
+  tasks           Task[]
+  events          Event[]
+  chatRooms       ChatRoom[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Permission {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  description String?
+  type        PermissionType
+  resource    String         // e.g., "projects", "clients", "consultants"
+  
+  // Relations
+  roles       RolePermission[]
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model RoleDefinition {
+  id          String               @id @default(uuid())
+  name        String               @unique
+  description String?
+  
+  // Relations
+  permissions RolePermission[]
+  users       UserRoleAssignment[]
+  
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model RolePermission {
+  role        RoleDefinition      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId      String
+  permission  Permission          @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+  
+  @@id([roleId, permissionId])
+}
+
+model UserRoleAssignment {
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  role        RoleDefinition      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId      String
+  
+  @@id([userId, roleId])
+  
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model Config {
+  id          String       @id @default(uuid())
+  key         String       @unique
+  value       String
+  category    String       // e.g., "branding", "notifications", "system"
+  description String?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ChatRoom {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  isGroup     Boolean      @default(false)
+  
+  // Relations
+  messages    Message[]
+  participants ChatRoomParticipant[]
+  projectId   String?      // Optional connection to a project
+  project     Project?     @relation(fields: [projectId], references: [id])
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ChatRoomParticipant {
+  chatRoom    ChatRoom     @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoomId  String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  status      UserStatus   @default(OFFLINE)
+  lastSeen    DateTime?
+  
+  @@id([chatRoomId, userId])
+}
+
+model Message {
+  id          String       @id @default(uuid())
+  content     String
+  
+  // Relations
+  chatRoom    ChatRoom     @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoomId  String
+  sender      User         @relation(fields: [senderId], references: [id])
+  senderId    String
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  dueDate     DateTime?
+  
+  // Relations
+  project     Project?     @relation(fields: [projectId], references: [id])
+  projectId   String?
+  assignee    User?        @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  createdBy   User         @relation("CreatedTasks", fields: [createdById], references: [id])
+  createdById String
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Event {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  isAllDay    Boolean      @default(false)
+  
+  // Relations
+  project     Project?     @relation(fields: [projectId], references: [id])
+  projectId   String?
+  attendees   EventAttendee[]
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model EventAttendee {
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  status      String       @default("pending") // "pending", "accepted", "declined"
+  
+  @@id([eventId, userId])
 }
