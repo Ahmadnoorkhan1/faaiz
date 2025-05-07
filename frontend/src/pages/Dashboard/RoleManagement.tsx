@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../service/apiService';
+import api, { get, post, update, remove } from '../../service/apiService';
+import { toast } from 'react-hot-toast';
 
 interface Role {
   id: string;
@@ -18,6 +19,7 @@ interface Role {
 
 interface User {
   id: string;
+  userId: string;
   email: string;
   role: string;
   userRoles: {
@@ -25,48 +27,12 @@ interface User {
   }[];
 }
 
-// Dummy data for UI preview
-const DUMMY_ROLES: Role[] = [
-  {
-    id: 'r1',
-    name: 'Admin',
-    description: 'Full system access',
-    permissions: [
-      { permission: { id: 'p1', name: 'Manage Users', type: 'WRITE', resource: 'User' } },
-      { permission: { id: 'p2', name: 'View Reports', type: 'READ', resource: 'Reports' } }
-    ],
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'r2',
-    name: 'Consultant',
-    description: 'Can manage assigned tasks',
-    permissions: [
-      { permission: { id: 'p3', name: 'View Tasks', type: 'READ', resource: 'Tasks' } }
-    ],
-    createdAt: new Date().toISOString()
-  }
-];
-
-const DUMMY_USERS: User[] = [
-  { id: 'u1', email: 'alice@example.com', role: 'Admin', userRoles: [{ role: DUMMY_ROLES[0] }] },
-  { id: 'u2', email: 'bob@example.com', role: 'Consultant', userRoles: [{ role: DUMMY_ROLES[1] }] }
-];
-
-// Dummy flat permissions list for new-role form & direct assignment
-const DUMMY_PERMISSIONS = DUMMY_ROLES.reduce(
-  (acc, role) => [...acc, ...role.permissions],
-  [] as Role['permissions']
-);
-
 const RoleManagement: React.FC = () => {
-  // States for creating roles and direct permission assignment
   const [creatingRole, setCreatingRole] = useState(false);
   const [newRoleData, setNewRoleData] = useState<{ name: string; description: string; permissions: string[] }>({ name: '', description: '', permissions: [] });
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  // Initialize with dummy data
-  const [roles, setRoles] = useState<Role[]>(DUMMY_ROLES);
-  const [users, setUsers] = useState<User[]>(DUMMY_USERS);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -77,20 +43,41 @@ const RoleManagement: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Commented out real API calls for dummy preview
-        // const [rolesResponse, usersResponse] = await Promise.all([
-        //   api.get('/api/roles'),
-        //   api.get('/api/consultants')
-        // ]);
-        // setRoles(rolesResponse.data.data || []);
-        // setUsers(usersResponse.data.data || []);
-        // Load dummy data instead
-        setRoles(DUMMY_ROLES);
-        setUsers(DUMMY_USERS);
+        
+        // Attempting to use real API calls
+        const [rolesResponse, usersResponse] = await Promise.all([
+          get('/api/roles'),
+          get('/api/consultants')
+        ] as any);
+        
+        // Log responses for debugging
+        console.log('Roles API response:', rolesResponse);
+        console.log('Users API response:', usersResponse);
+        
+        if (Array.isArray(rolesResponse?.data)) {
+          setRoles(rolesResponse.data);
+          toast.success(`Successfully loaded ${rolesResponse.data.length} roles`);
+        } else {
+          console.warn('Roles API returned unexpected format:', rolesResponse);
+          toast.error('Roles data has an unexpected format');
+          setRoles([]);
+        }
+        
+        if (Array.isArray(usersResponse?.data)) {
+          setUsers(usersResponse.data);
+          toast.success(`Successfully loaded ${usersResponse.data.length} users`);
+        } else {
+          console.warn('Users API returned unexpected format:', usersResponse);
+          toast.error('Users data has an unexpected format');
+          setUsers([]);
+        }
+        
         setLoading(false);
+        toast.dismiss();
       } catch (err) {
-        console.error('Error loading dummy data:', err);
-        setError('Failed to load data.');
+        console.error('Error fetching roles and users:', err);
+        toast.error(`Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setError('Failed to load data. Please try again later.');
         setLoading(false);
       }
     };
@@ -103,14 +90,8 @@ const RoleManagement: React.FC = () => {
     setSelectedRoles([]);
 
     try {
-      // Get user roles
-      // Commented out real API call
-      // const response = await api.get(`/api/roles/users/${userId}/roles`);
-      // const userRoles = response.data.data || [];
-      // setSelectedRoles(userRoles.map((userRole: any) => userRole.role.id));
-      // Use dummy userRoles
-      const user = DUMMY_USERS.find(u => u.id === userId);
-      setSelectedRoles(user?.userRoles.map(ur => ur.role.id) || []);
+      const response = await get(`/api/roles/users/${userId}/roles`) as any;
+      setSelectedRoles(response.data.map((userRole: any) => userRole.roleId));
     } catch (err) {
       console.error('Error fetching user roles:', err);
       setError('Failed to load user roles. Please try again.');
@@ -131,34 +112,45 @@ const RoleManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      // For each selected role, check if it's already assigned
-      const user = users.find(u => u.id === selectedUser);
-      const existingRoleIds = user?.userRoles?.map(ur => ur.role.id) || [];
-
-      // Add new roles
-      const rolesToAdd = selectedRoles.filter(roleId => !existingRoleIds.includes(roleId));
+      const currentRolesResponse = await get(`/api/roles/users/${selectedUser}/roles`) as any;
+      const currentRoleIds = currentRolesResponse.data.map((role: any) => role.roleId);
       
-      // Remove roles
-      const rolesToRemove = existingRoleIds.filter(roleId => !selectedRoles.includes(roleId));
-
-      // Perform operations
-      await Promise.all([
-        ...rolesToAdd.map(roleId => 
-          api.post(`/api/roles/users/${selectedUser}/roles`, { roleId })
-        ),
-        ...rolesToRemove.map(roleId => 
-          api.delete(`/api/roles/users/${selectedUser}/roles/${roleId}`)
-        )
-      ]);
-
-      alert('Roles updated successfully');
+      const rolesToAdd = selectedRoles.filter(roleId => !currentRoleIds.includes(roleId));
+      const rolesToRemove = currentRoleIds.filter((roleId:any) => !selectedRoles.includes(roleId));
+      
+      for (const roleId of rolesToAdd) {
+        await post('/api/roles/assign', { userId: selectedUser, roleId });
+      }
+      
+      for (const roleId of rolesToRemove) {
+        await post('/api/roles/remove', { userId: selectedUser, roleId });
+      }
+      
+      toast.success('Roles updated successfully');
     } catch (err) {
       console.error('Error updating roles:', err);
-      setError('Failed to update roles. Please try again.');
+      toast.error('Failed to update roles. Please try again.');
     }
   };
 
-  // Filter users based on search term
+  const handleCreateRole = async () => {
+    try {
+      const response = await post('/api/roles', {
+        name: newRoleData.name,
+        description: newRoleData.description,
+        permissions: newRoleData.permissions
+      }) as any;
+      
+      setRoles([...roles, response.data]);
+      setCreatingRole(false);
+      setNewRoleData({ name: '', description: '', permissions: [] });
+      toast.success('Role created successfully');
+    } catch (err) {
+      console.error('Error creating role:', err);
+      toast.error('Failed to create role. Please try again.');
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -186,7 +178,6 @@ const RoleManagement: React.FC = () => {
         <div className="text-center py-8 text-red-500">{error}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Users Panel */}
           <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
             <h2 className="text-lg font-medium text-gray-200 mb-4">Users</h2>
             <div className="relative mb-4">
@@ -211,7 +202,7 @@ const RoleManagement: React.FC = () => {
                     className={`p-3 rounded-lg cursor-pointer transition-colors ${
                       selectedUser === user.id ? 'bg-blue-600 text-white' : 'bg-[#242935] text-gray-200 hover:bg-[#2e3446]'
                     }`}
-                    onClick={() => handleUserSelect(user.id)}
+                    onClick={() => handleUserSelect(user.userId)}
                   >
                     <div className="font-medium">{user.email}</div>
                     <div className={`text-xs ${selectedUser === user.id ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -227,9 +218,7 @@ const RoleManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Roles Panel */}
           <div className="md:col-span-2 bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-            {/* New Role Form */}
             {creatingRole && (
               <div className="bg-[#242935] p-6 rounded-lg mb-6">
                 <h3 className="text-lg font-medium text-gray-200 mb-4">New Role</h3>
@@ -248,7 +237,7 @@ const RoleManagement: React.FC = () => {
                 />
                 <p className="text-gray-200 mb-1">Permissions</p>
                 <div className="grid grid-cols-2 gap-2 mb-4">
-                  {DUMMY_PERMISSIONS.map((p, idx) => (
+                  {roles.flatMap(role => role.permissions).map((p, idx) => (
                     <label key={idx} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -274,20 +263,7 @@ const RoleManagement: React.FC = () => {
                   </button>
                   <button
                     disabled={!newRoleData.name}
-                    onClick={() => {
-                      const id = 'r' + Date.now();
-                      const newPerms = DUMMY_PERMISSIONS.filter(p => newRoleData.permissions.includes(p.permission.id));
-                      const roleObj: Role = {
-                        id,
-                        name: newRoleData.name,
-                        description: newRoleData.description,
-                        permissions: newPerms,
-                        createdAt: new Date().toISOString()
-                      };
-                      setRoles(prev => [...prev, roleObj]);
-                      setCreatingRole(false);
-                      setNewRoleData({ name: '', description: '', permissions: [] });
-                    }}
+                    onClick={handleCreateRole}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg"
                   >
                     Save Role
@@ -295,7 +271,6 @@ const RoleManagement: React.FC = () => {
                 </div>
               </div>
             )}
-            {/* Roles Overview Table */}
             <div className="overflow-x-auto mb-6">
               <table className="min-w-full text-gray-200">
                 <thead className="bg-[#242935]">
@@ -390,28 +365,6 @@ const RoleManagement: React.FC = () => {
                 <p>Select a user to manage roles</p>
               </div>
             )}
-            {/* Direct Permissions Panel for users without roles */}
-            {selectedUser && selectedRoles.length === 0 && (
-              <div className="bg-[#242935] p-4 rounded-lg mb-6">
-                <p className="text-gray-200 mb-2">Permissions Only</p>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {DUMMY_PERMISSIONS.map((p, idx) => (
-                    <label key={idx} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedPermissions.includes(p.permission.id)}
-                        onChange={() => setSelectedPermissions(prev => prev.includes(p.permission.id) ? prev.filter(id => id !== p.permission.id) : [...prev, p.permission.id])}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span className="text-gray-200">{p.permission.name}</span>
-                    </label>
-                  ))}
-                </div>
-                <button onClick={() => alert('Permissions assigned')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                  Save Permissions
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -419,4 +372,4 @@ const RoleManagement: React.FC = () => {
   );
 };
 
-export default RoleManagement; 
+export default RoleManagement;

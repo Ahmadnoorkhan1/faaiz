@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
+import ProjectProposalUpload from './components/ProjectProposalUpload';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface ConfigItem {
   id: string;
@@ -122,89 +124,9 @@ const SERVICE_TYPES = [
   'OTHER'
 ];
 
-// Dummy configuration data for UI preview
-const DUMMY_CONFIGURATIONS: GroupedConfig = {
-  General: [
-    {
-      id: 'cfg1',
-      key: 'siteTitle',
-      value: 'GRC Platform',
-      category: 'General',
-      description: 'Title shown in header',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'cfg2',
-      key: 'maintenanceMode',
-      value: 'off',
-      category: 'General',
-      description: 'Toggle maintenance mode',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ],
-  Security: [
-    {
-      id: 'cfg3',
-      key: 'passwordMinLength',
-      value: '8',
-      category: 'Security',
-      description: 'Min password length',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ],
-  Notifications: [
-    {
-      id: 'cfg4',
-      key: 'emailSender',
-      value: 'noreply@example.com',
-      category: 'Notifications',
-      description: 'Default sender email',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ],
-  // Dashboard-specific settings
-  Dashboard: [
-    {
-      id: 'cfg5',
-      key: 'dashboardLayout',
-      value: 'grid',
-      category: 'Dashboard',
-      description: 'Layout of the dashboard (grid or list)',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'cfg6',
-      key: 'showWelcomeBanner',
-      value: 'true',
-      category: 'Dashboard',
-      description: 'Toggle welcome banner visibility',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'cfg7',
-      key: 'defaultModule',
-      value: 'Projects',
-      category: 'Dashboard',
-      description: 'Default module shown on login',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ],
-  // New categories for file uploads
-  'Project Proposal': [],
-  'Project Plan': []
-};
-
 const Configurations: React.FC = () => {
   const [configurations, setConfigurations] = useState<GroupedConfig>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [editingConfig, setEditingConfig] = useState<ConfigItem | null>(null);
   const [newConfig, setNewConfig] = useState<Partial<ConfigItem> | null>(null);
@@ -216,80 +138,55 @@ const Configurations: React.FC = () => {
   const [selectedCategoryFB, setSelectedCategoryFB] = useState<string>(FEEDBACK_CATEGORIES[0]);
   const [feedbackData, setFeedbackData] = useState<Record<string, {score:number; comment:string}>>({});
 
-  // Upload states
-  const [selectedUploadService, setSelectedUploadService] = useState<string>('');
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const handleUploadDocument = () => {
-    if (!activeCategory || !selectedUploadService || !uploadFile) return;
-    setConfigurations(prev => {
-      const list = prev[activeCategory] || [];
-      const existing = list.find(item => item.key === selectedUploadService);
-      if (existing) {
-        // Update existing document entry
-        return {
-          ...prev,
-          [activeCategory]: list.map(item =>
-            item.key === selectedUploadService
-              ? { ...item, value: uploadFile.name, updatedAt: new Date().toISOString() }
-              : item
-          )
-        };
-      } else {
-        // Add new entry
-        const newEntry: ConfigItem = {
-          id: 'cfg' + Date.now(),
-          key: selectedUploadService,
-          value: uploadFile.name,
-          category: activeCategory,
-          description: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        return { ...prev, [activeCategory]: [...list, newEntry] };
-      }
-    });
-    setSelectedUploadService('');
-    setUploadFile(null);
-  };
-
   useEffect(() => {
     const fetchConfigurations = async () => {
       try {
         setLoading(true);
-        // Commented out real API call - using dummy data
-        // const response = await api.get('/api/config');
-        // setConfigurations(response.data.data || {});
-        setConfigurations(DUMMY_CONFIGURATIONS);
-        // Initialize active category from dummy
-        if (!activeCategory) {
-          setActiveCategory(Object.keys(DUMMY_CONFIGURATIONS)[0]);
+        const response = await api.get('/api/config');
+        
+        if (response.data?.success === false) {
+          throw new Error(response.data?.message || 'Failed to load configurations');
+        }
+        
+        // If data is empty, initialize with empty object
+        const configData = response.data?.data || {};
+        setConfigurations(configData);
+        
+        // Initialize active category from response
+        if (!activeCategory && Object.keys(configData).length > 0) {
+          setActiveCategory(Object.keys(configData)[0]);
         }
         
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching configurations:', err);
-        setError('Failed to load configurations. Please try again later.');
+        toast.error(err?.message || 'Failed to load configurations. Please try again later.');
         setLoading(false);
       }
     };
-
     fetchConfigurations();
   }, [activeCategory]);
 
   const handleSaveConfig = async (config: Partial<ConfigItem>) => {
     try {
-      await api.post('/api/config', config);
+      const response = await api.post('/api/config', config);
+      
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'Failed to save configuration');
+      }
       
       // Refresh configurations
-      const response = await api.get('/api/config');
-      setConfigurations(response.data.data || {});
+      const configResponse = await api.get('/api/config');
+      setConfigurations(configResponse.data.data || {});
       
       // Reset editing states
       setEditingConfig(null);
       setNewConfig(null);
-    } catch (err) {
+      
+      toast.success('Configuration saved successfully');
+    } catch (err: any) {
       console.error('Error saving configuration:', err);
-      setError('Failed to save configuration. Please try again.');
+      toast.error(err?.message || 'Failed to save configuration. Please try again.');
     }
   };
 
@@ -299,14 +196,82 @@ const Configurations: React.FC = () => {
     }
     
     try {
-      await api.delete(`/api/config/${key}`);
+      const response = await api.delete(`/api/config/${key}`);
+      
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'Failed to delete configuration');
+      }
       
       // Refresh configurations
-      const response = await api.get('/api/config');
-      setConfigurations(response.data.data || {});
-    } catch (err) {
+      const configResponse = await api.get('/api/config');
+      setConfigurations(configResponse.data.data || {});
+      
+      toast.success('Configuration deleted successfully');
+    } catch (err: any) {
       console.error('Error deleting configuration:', err);
-      setError('Failed to delete configuration. Please try again.');
+      toast.error(err?.message || 'Failed to delete configuration. Please try again.');
+    }
+  };
+
+  const handleUploadDocument = async (service: string, file: File) => {
+    if (!activeCategory) return;
+    
+    try {
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', activeCategory);
+      formData.append('serviceType', service);
+      
+      // Upload the document using the correct endpoint
+      const response = await api.post('/api/documents/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'Failed to upload document');
+      }
+      
+      // Update the local state with the new document
+      setConfigurations(prev => {
+        const list = prev[activeCategory] || [];
+        const existing = list.find(item => item.key === service);
+        
+        if (existing) {
+          // Update existing document entry
+          return {
+            ...prev,
+            [activeCategory]: list.map(item =>
+              item.key === service
+                ? { ...item, value: file.name, updatedAt: new Date().toISOString() }
+                : item
+            )
+          };
+        } else {
+          // Add new entry
+          const newEntry: ConfigItem = {
+            id: 'cfg' + Date.now(),
+            key: service,
+            value: file.name,
+            category: activeCategory,
+            description: 'Document upload',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          return { ...prev, [activeCategory]: [...list, newEntry] };
+        }
+      });
+      
+      // Refresh configurations to ensure we have the latest data
+      const configResponse = await api.get('/api/config');
+      setConfigurations(configResponse.data.data || {});
+      
+      toast.success('Document uploaded successfully');
+    } catch (err: any) {
+      console.error('Error uploading document:', err);
+      toast.error(err?.message || 'Failed to upload document. Please try again.');
     }
   };
 
@@ -396,10 +361,30 @@ const Configurations: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Toast container */}
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          success: {
+            style: {
+              background: '#1E3A8A',
+              color: 'white',
+            },
+          },
+          error: {
+            style: {
+              background: '#B91C1C',
+              color: 'white',
+            },
+          },
+          duration: 3000,
+        }}
+      />
+      
       {/* Page Tabs */}
       <div className="border-b border-gray-600 mb-6">
         <nav className="-mb-px flex space-x-6">
-          {TABS.map(tab => (
+          {TABS?.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -434,8 +419,6 @@ const Configurations: React.FC = () => {
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Categories Sidebar */}
@@ -449,7 +432,12 @@ const Configurations: React.FC = () => {
                         className={`p-3 rounded-lg cursor-pointer transition-colors ${
                           activeCategory === category ? 'bg-blue-600 text-white' : 'bg-[#242935] text-gray-200 hover:bg-[#2e3446]'
                         }`}
-                        onClick={() => setActiveCategory(category)}
+                        onClick={() => {
+                          setActiveCategory(category);
+                          // Reset the form states when selecting a category
+                          setNewConfig(null);
+                          setEditingConfig(null);
+                        }}
                       >
                         <div className="font-medium">{category}</div>
                         <div className={`text-xs ${activeCategory === category ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -472,48 +460,11 @@ const Configurations: React.FC = () => {
                 ) : editingConfig ? (
                   renderConfigForm(editingConfig)
                 ) : (activeCategory === 'Project Proposal' || activeCategory === 'Project Plan') ? (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-medium text-gray-200 mb-4">{activeCategory}</h2>
-                    <div className="bg-[#242935] p-4 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Service</label>
-                      <select
-                        value={selectedUploadService}
-                        onChange={e => setSelectedUploadService(e.target.value)}
-                        className="w-full bg-[#1a1f2b] text-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Select Service</option>
-                        {SERVICE_TYPES.map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="bg-[#242935] p-4 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Upload Document</label>
-                      <input
-                        type="file"
-                        onChange={e => setUploadFile(e.target.files?.[0] || null)}
-                        className="text-gray-200"
-                      />
-                    </div>
-                    <button
-                      disabled={!selectedUploadService || !uploadFile}
-                      onClick={handleUploadDocument}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Upload
-                    </button>
-                    <div className="mt-6 space-y-4">
-                      {configurations[activeCategory]?.map(item => (
-                        <div key={item.id} className="bg-[#242935] p-4 rounded-lg flex justify-between items-center">
-                          <div>
-                            <p className="text-gray-200">{item.key}</p>
-                            <p className="text-gray-400 text-sm">{item.value}</p>
-                          </div>
-                          <a href="#" className="text-blue-500 hover:text-blue-400">Download</a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ProjectProposalUpload
+                    category={activeCategory}
+                    configurations={configurations[activeCategory] || []}
+                    onUpload={handleUploadDocument}
+                  />
                 ) : activeCategory && configurations[activeCategory] ? (
                   <>
                     <h2 className="text-lg font-medium text-gray-200 mb-4">
@@ -530,18 +481,22 @@ const Configurations: React.FC = () => {
                               )}
                             </div>
                             <div className="flex space-x-2">
-                              <button 
-                                onClick={() => setEditingConfig(config)}
-                                className="text-blue-500 hover:text-blue-400"
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteConfig(config.key)}
-                                className="text-red-500 hover:text-red-400"
-                              >
-                                Delete
-                              </button>
+                            <button 
+  onClick={() => setEditingConfig(config)}
+  className="flex items-center gap-1 text-sm px-2 py-1 rounded shadow-sm text-white hover:text-blue-400 border border-blue-200 hover:border-blue-300 transition"
+>
+  
+  Edit
+</button>
+
+<button 
+  onClick={() => handleDeleteConfig(config.key)}
+  className="flex items-center gap-1 text-sm px-2 py-1 rounded shadow-sm text-white hover:text-red-400 border border-red-200 hover:border-red-300 transition"
+>
+ 
+  Delete
+</button>
+
                             </div>
                           </div>
                           <div className="mt-3 p-3 bg-[#1a1f2b] rounded-lg text-gray-300">
@@ -673,4 +628,4 @@ const Configurations: React.FC = () => {
   );
 };
 
-export default Configurations; 
+export default Configurations;

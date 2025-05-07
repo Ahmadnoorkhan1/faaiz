@@ -1,11 +1,16 @@
 import express from 'express';
 import { authenticateToken } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/auth.js';
 import { 
-  getAllRoles, 
-  createRole, 
-  assignRoleToUser, 
-  getUserRoles, 
-  removeRoleFromUser 
+  getAllRoles,
+  getRoleById,
+  createRole,
+  updateRole,
+  deleteRole,
+  assignRoleToUser,
+  removeRoleFromUser,
+  getUserRoles,
+  getUserPermissions
 } from '../controllers/roleController.js';
 
 const router = express.Router();
@@ -13,18 +18,24 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateToken);
 
-// Role routes
+// Role management routes (admin only)
 router.route('/')
-  .get(getAllRoles)
-  .post(createRole);
+  .get(authorize('ADMIN'), getAllRoles)
+  .post(authorize('ADMIN'), createRole);
 
-// User role routes
-router.route('/users/:userId/roles')
-  .get(getUserRoles)
-  .post(assignRoleToUser);
+router.route('/:id')
+  .get(authorize('ADMIN'), getRoleById)
+  .put(authorize('ADMIN'), updateRole)
+  .delete(authorize('ADMIN'), deleteRole);
 
-router.route('/users/:userId/roles/:roleId')
-  .delete(removeRoleFromUser);
+// Role assignment routes (admin only)
+router.post('/assign', authorize('ADMIN'), assignRoleToUser);
+router.post('/remove', authorize('ADMIN'), removeRoleFromUser);
 
-const roleRoutes = router;
-export default roleRoutes; 
+// Get user roles
+router.get('/users/:userId/roles', getUserRoles);
+
+// Get user permissions
+router.get('/users/:userId/permissions', getUserPermissions);
+
+export default router;

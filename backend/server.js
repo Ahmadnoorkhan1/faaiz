@@ -14,6 +14,8 @@ import projectRoutes from './routes/projectRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import configRoutes from './routes/configRoutes.js';
+import permissionRoutes from './routes/permissionRoutes.js';
+
 // import userRoutes from "./src/routes/userRoutes.js";
 // import clientRoutes from "./src/routes/clientRoutes.js";
 
@@ -52,6 +54,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/permissions', permissionRoutes);
 // app.use('/api/users', userRoutes);
 // app.use('/api/clients', clientRoutes);
 

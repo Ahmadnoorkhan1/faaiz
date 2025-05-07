@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 
 import { AuthProvider } from "./utils/AuthContext";
 import { ProfileProvider } from "./utils/ProfileContext";
+// import { RbacProvider } from "./utils/RbacContext";
 import Layout from "./layouts/Layouts";
 import HomePage from "./pages/Hompage";
 import Login from "./pages/Login";
@@ -40,88 +41,107 @@ import Tasks from "./pages/Dashboard/Tasks";
 import Board from "./pages/Dashboard/Board";
 import Schedule from "./pages/Dashboard/Schedule";
 import RoleManagement from "./pages/Dashboard/RoleManagement";
-import Configurations from "./pages/Dashboard/Configurations";
+import Configurations from "./pages/configurations";
+// import RbacTester from "./pages/Dashboard/RbacTester";
+// import Reports from "./pages/Dashboard/Reports";
+import RbacTester from "./components/RbacTester";
+import { RbacProvider } from "./contexts/RbacContext";
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <ProfileProvider>
-        <Router>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 5000,
-              style: {
-                background: "#FFFFFF",
-                color: "#333333",
-                borderRadius: "8px",
-                boxShadow: "0 3px 10px rgba(0, 0, 0, 0.15)",
-              },
-              success: {
-                iconTheme: {
-                  primary: "#0078D4",
-                  secondary: "#FFFFFF",
+        <RbacProvider>
+          <Router>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 5000,
+                style: {
+                  background: "#FFFFFF",
+                  color: "#333333",
+                  borderRadius: "8px",
+                  boxShadow: "0 3px 10px rgba(0, 0, 0, 0.15)",
                 },
-              },
-              error: {
-                iconTheme: {
-                  primary: "#d92d20",
-                  secondary: "#FFFFFF",
+                success: {
+                  iconTheme: {
+                    primary: "#0078D4",
+                    secondary: "#FFFFFF",
+                  },
                 },
-              },
-            }}
-          />
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<PublicRoute />}>
-              <Route
-                element={
-                  <Layout>
-                    <Outlet />
-                  </Layout>
-                }
-              >
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/use-cases" element={<UseCases />} />
-                {/* <Route path="/about" element={<About />} /> */}
-                <Route path="/work-with-us" element={<WorkWithUs />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/onboard/client" element={<ClientOnboarding />} />
+                error: {
+                  iconTheme: {
+                    primary: "#d92d20",
+                    secondary: "#FFFFFF",
+                  },
+                },
+              }}
+            />
+            <Routes>
+              {/* Public Routes */}
+              <Route element={<PublicRoute />}>
                 <Route
-                  path="/onboard/consultant"
-                  element={<ConsultantOnboarding />}
-                />
+                  element={
+                    <Layout>
+                      <Outlet />
+                    </Layout>
+                  }
+                >
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/use-cases" element={<UseCases />} />
+                  {/* <Route path="/about" element={<About />} /> */}
+                  <Route path="/work-with-us" element={<WorkWithUs />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/onboard/client" element={<ClientOnboarding />} />
+                  <Route
+                    path="/onboard/consultant"
+                    element={<ConsultantOnboarding />}
+                  />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/finance" element={<Finance />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/scheduled-calls" element={<ScheduledCalls />} />
-                <Route path="/schedule-call" element={<ScheduleCall />} />
-                <Route path="/documents" element={<Documents />} />
-                <Route path="/teams-channels" element={<TeamsChannels />} />
-                
-                {/* New routes */}
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/clients-list" element={<ClientsList />} />
-                <Route path="/consultants-list" element={<ConsultantsList />} />
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/board" element={<Board />} />
-                <Route path="/schedule" element={<Schedule />} />
-                <Route path="/role-management" element={<RoleManagement />} />
-                <Route path="/configurations" element={<Configurations />} />
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/finance" element={<Finance />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/scheduled-calls" element={<ScheduledCalls />} />
+                  <Route path="/schedule-call" element={<ScheduleCall />} />
+                  <Route path="/documents" element={<Documents />} />
+                  <Route path="/teams-channels" element={<TeamsChannels />} />
+                  
+                  {/* New routes */}
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/clients-list" element={<ClientsList />} />
+                  <Route path="/consultants-list" element={<ConsultantsList />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/board" element={<Board />} />
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/role-management" element={<RoleManagement />} />
+                  <Route path="/configurations" element={<Configurations />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
-        </Router>
+
+              {/* Example routes with different permission requirements */}
+              <Route element={<ProtectedRoute requiredPermissions={['VIEW_DASHBOARD']} />}>
+                <Route path="/dashboard/rbac-test" element={<RbacTester />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                <Route path="/admin/role-management" element={<RoleManagement />} />
+              </Route>
+
+              {/* <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
+                <Route path="/manager/reports" element={<Reports />} />
+              </Route> */}
+            </Routes>
+          </Router>
+        </RbacProvider>
       </ProfileProvider>
     </AuthProvider>
   );

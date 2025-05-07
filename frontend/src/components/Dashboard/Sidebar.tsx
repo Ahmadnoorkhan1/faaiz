@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -9,6 +10,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
   const location = useLocation();
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  const { hasPermission, hasRole } = usePermissions();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -196,6 +198,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
               </Link>
             </li>
           ))}
+          {hasRole('ADMIN') && (
+            <li>
+              <Link 
+                to="/admin/role-management" 
+                className="flex items-center px-4 py-2 text-gray-300 hover:bg-[#2e3446] rounded-lg"
+              >
+                <svg className="w-5 h-5 mr-2" /* SVG props */ />
+                Role Management
+              </Link>
+            </li>
+          )}
+          {hasPermission('VIEW_ANALYTICS') && (
+            <li>
+              <Link 
+                to="/analytics" 
+                className="flex items-center px-4 py-2 text-gray-300 hover:bg-[#2e3446] rounded-lg"
+              >
+                <svg className="w-5 h-5 mr-2" /* SVG props */ />
+                Analytics
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
 
@@ -234,4 +258,4 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

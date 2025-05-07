@@ -47,7 +47,7 @@ export const documentController = {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const { documentType, clientId, consultantId } = req.body;
+      const { documentType = "PROPOSAL", clientId, consultantId } = req.body;
 
       // Get file type from the uploaded file
       const fileType = req.file.mimetype;
