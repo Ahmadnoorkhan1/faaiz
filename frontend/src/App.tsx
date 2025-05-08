@@ -34,7 +34,7 @@ import WorkWithUs from "./pages/WorkWithUs";
 import SignUp from "./pages/SignUp";
 
 // New pages
-import Projects from "./pages/Dashboard/Projects";
+import Projects from './pages/Dashboard/Projects';
 import ClientsList from "./pages/Dashboard/ClientsList";
 import ConsultantsList from "./pages/Dashboard/ConsultantsList";
 import Tasks from "./pages/Dashboard/Tasks";

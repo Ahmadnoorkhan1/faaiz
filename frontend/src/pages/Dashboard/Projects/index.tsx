@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../service/apiService';
+import api from '../../../service/apiService';
 import { format } from 'date-fns';
+import CreateProjectModal from './components/CreateProjectModal';
+import toast from 'react-hot-toast';
 
 interface Project {
   id: string;
@@ -36,35 +38,44 @@ const Projects: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/api/projects');
-        setProjects(response.data.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError('Failed to load projects. Please try again later.');
-        setLoading(false);
-      }
-    };
-
     fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/projects');
+      setProjects(response.data.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      toast.error('Failed to load projects. Please try again later.');
+      setError('Failed to load projects. Please try again later.');
+      setLoading(false);
+    }
+  };
 
   const handleDeleteProject = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
         await api.delete(`/api/projects/${id}`);
         setProjects(projects.filter(project => project.id !== id));
+        toast.success('Project deleted successfully');
       } catch (err) {
         console.error('Error deleting project:', err);
-        setError('Failed to delete project. Please try again.');
+        toast.error('Failed to delete project. Please try again.');
       }
     }
+  };
+
+  const handleProjectCreated = (newProject: Project) => {
+    setProjects([...projects, newProject]);
+    setShowCreateModal(false);
+    toast.success('Project created successfully');
   };
 
   const filteredProjects = projects.filter(project => {
@@ -122,13 +133,21 @@ const Projects: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Create Project Modal */}
+      {showCreateModal && (
+        <CreateProjectModal
+          onClose={() => setShowCreateModal(false)}
+          onProjectCreated={handleProjectCreated as any}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-200">Projects</h1>
           <p className="text-gray-400 mt-1">Manage and monitor all projects</p>
         </div>
         <button 
-          onClick={() => navigate('/project/new')} 
+          onClick={() => setShowCreateModal(true)} 
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Add New Project
@@ -256,4 +275,4 @@ const Projects: React.FC = () => {
   );
 };
 
-export default Projects; 
+export default Projects;

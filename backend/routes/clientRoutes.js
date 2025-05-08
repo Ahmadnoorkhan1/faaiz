@@ -1,14 +1,17 @@
 import express from 'express';
 import { authenticateToken } from '../middlewares/auth.js';
-import { getClients } from '../controllers/clientController.js';
+import { getClients, createClient } from '../controllers/clientController.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Public route for client registration
+router.post('/', createClient);
+
+// All routes below this line require authentication
 router.use(authenticateToken);
 
-// Client routes
+// Client routes that require authentication
 router.get('/', getClients);
 
 const clientRoutes = router;
-export default clientRoutes; 
+export default clientRoutes;

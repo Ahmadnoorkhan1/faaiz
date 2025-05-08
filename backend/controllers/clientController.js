@@ -1,6 +1,137 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+/**
+ * Create a new client
+ * @route POST /api/clients
+ * @access Public
+ */
+export const createClient = async (req, res, next) => {
+  try {
+    const { 
+      email, 
+      password, 
+      fullName,
+      organization,
+      phoneNumber,
+      additionalContact,
+      requestedServices,
+      discoveryMethod,
+      scopingDetails,
+      interviewDate,
+      interviewTime,
+      termsAccepted,
+      // Fields to be stored in otherDetails
+      address,
+      country,
+      state,
+      city,
+      postalCode,
+      industry,
+      companySize,
+      website,
+      otherDetails 
+    } = req.body;
+
+    // Check if the user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email already in use' 
+      });
+    }
+
+    // Validate required fields
+    if (!email || !password || !fullName || !phoneNumber || !organization) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password, fullName, phoneNumber and organization are required'
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user and client profile in a transaction
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create user with CLIENT role
+      const user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role: 'CLIENT',
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true
+        }
+      });
+
+      // Prepare otherDetails as JSON string
+      const otherDetailsJson = JSON.stringify({
+        address: address || null,
+        country: country || null,
+        state: state || null,
+        city: city || null,
+        postalCode: postalCode || null,
+        industry: industry || null,
+        companySize: companySize || null,
+        website: website || null,
+        ...otherDetails && typeof otherDetails === 'object' ? otherDetails : {}
+      });
+
+      // Create client profile with fields that match schema
+      const clientProfile = await prisma.clientProfile.create({
+        data: {
+          userId: user.id,
+          fullName,
+          organization,
+          phoneNumber,
+          additionalContact: additionalContact || null,
+          requestedServices: requestedServices || [],
+          otherDetails: otherDetailsJson,
+          discoveryMethod: discoveryMethod || null,
+          scopingDetails: scopingDetails || null,
+          interviewDate: interviewDate || null,
+          interviewTime: interviewTime || null,
+          termsAccepted: termsAccepted || false,
+          currentStep: 0,
+          onboardingStatus: 'NOT_STARTED'
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true
+            }
+          }
+        }
+      });
+
+      return {
+        user: user,
+        clientProfile: clientProfile
+      };
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Client creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An error occurred during client creation'
+    });
+  }
+};
 
 /**
  * Get all clients
@@ -51,4 +182,4 @@ export const getClients = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};

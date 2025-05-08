@@ -58,7 +58,7 @@ export const documentController = {
         `shared-documents-${req.user.id}`, // container name - fix invalid space character
         req.file.originalname
       );
-
+ 
       // Create document record
       const document = await prisma.document.create({
         data: {

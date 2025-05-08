@@ -139,6 +139,20 @@ export const createProject = async (req, res, next) => {
       });
     }
     
+    // Validate consultant exists if consultantId is provided
+    if (consultantId) {
+      const consultant = await prisma.user.findUnique({
+        where: { id: consultantId }
+      });
+      
+      if (!consultant) {
+        return res.status(400).json({
+          success: false,
+          message: 'Consultant not found with the provided ID'
+        });
+      }
+    }
+    
     // Create project
     const project = await prisma.project.create({
       data: {
@@ -272,4 +286,4 @@ export const deleteProject = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};

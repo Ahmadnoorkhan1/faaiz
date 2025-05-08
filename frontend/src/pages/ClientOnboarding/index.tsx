@@ -22,8 +22,8 @@ const steps = [
   { title: 'Basic Info', description: 'Contact and Services' },
   { title: 'Personal Info', description: 'Your Details' },
   { title: 'Discovery', description: 'Call or Form' },
-  { title: 'Proposal', description: 'Generating...' },
-  { title: 'Interview', description: 'Schedule (Optional)' },
+  // { title: 'Proposal', description: 'Generating...' },
+  // { title: 'Interview', description: 'Schedule (Optional)' },
   { title: 'Legal', description: 'Final Steps' },
 ];
 
@@ -33,8 +33,8 @@ const stepFields = {
   1: ['requestedServices', 'otherDetails'],
   2: ['fullName', 'phoneNumber', 'organization'],
   3: ['discoveryMethod'],
-  4: [],
-  5: [],
+  // 4: [],
+  // 5: [],
   6: ['termsAccepted']
 };
 

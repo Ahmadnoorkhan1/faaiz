@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
 import ProjectProposalUpload from './components/ProjectProposalUpload';
+import ProjectPlanUpload from './components/ProjectPlanUpload';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface ConfigItem {
@@ -459,11 +460,16 @@ const Configurations: React.FC = () => {
                   renderConfigForm(newConfig, true)
                 ) : editingConfig ? (
                   renderConfigForm(editingConfig)
-                ) : (activeCategory === 'Project Proposal' || activeCategory === 'Project Plan') ? (
+                ) : activeCategory === 'Project Proposal' ? (
                   <ProjectProposalUpload
                     category={activeCategory}
                     configurations={configurations[activeCategory] || []}
                     onUpload={handleUploadDocument}
+                  />
+                ) : activeCategory === 'Project Plan' ? (
+                  <ProjectPlanUpload
+                    configurations={configurations[activeCategory] || []}
+                    projectId={activeCategory === 'Project Plan' ? activeCategory : ''}
                   />
                 ) : activeCategory && configurations[activeCategory] ? (
                   <>
@@ -476,10 +482,11 @@ const Configurations: React.FC = () => {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="text-gray-200 font-medium">{config.key}</h3>
-                              {config.description && (
                                 <p className="text-gray-400 text-sm mt-1">{config.description}</p>
-                              )}
+  
+                            
                             </div>
+                            
                             <div className="flex space-x-2">
                             <button 
   onClick={() => setEditingConfig(config)}
