@@ -32,130 +32,100 @@ export const importTasksFromExcel = async (req, res) => {
       });
     }
 
-    // Parse Excel file using our utility
-    const { phases } = parseIsoProjectExcel(req.file.buffer);
-    
-    // Add projectId to all phases
-    const phasesWithProject = phases.map(phase => ({
-      ...phase,
+    // Parse Excel file
+    const result = parseIsoProjectExcel(req.file.buffer);
+
+    // Prepare phases with projectId
+    const phasesToCreate = result.phases.map(p => ({
+      ...p,
       projectId
     }));
 
-    // Save the parsed data to the database using a transaction
-    const result = await prisma.$transaction(async (prisma) => {
+    // Persist phases, subPhases & tasks in a single transaction
+    const created = await prisma.$transaction(async prismaTx => {
       const createdPhases = [];
-      
-      // Create phases
-      for (const phase of phasesWithProject) {
-        const { subPhases, ...phaseData } = phase;
-        
-        const createdPhase = await prisma.phase.create({
-          data: phaseData
+
+      for (const phase of phasesToCreate) {
+        // 1. Create Phase
+        const createdPhase = await prismaTx.phase.create({
+          data: {
+            id: phase.id,
+            // ensure title is string and use phase.number for order
+            title: String(phase.name),
+            order: parseInt(phase.number, 10) || 0,
+            projectId: phase.projectId
+          }
         });
-        
+
+        // 2. Create SubPhases
         const createdSubPhases = [];
-        
-        // Create sub-phases
-        for (const subPhase of subPhases) {
-          const { tasks, ...subPhaseData } = subPhase;
-          
-          const createdSubPhase = await prisma.subPhase.create({
+        for (const sub of phase.subPhases) {
+          const createdSub = await prismaTx.subPhase.create({
             data: {
-              ...subPhaseData,
+              id: sub.id,
+              // coerce to string, use sub.number for ordering
+              title: sub.name != null ? String(sub.name) : 'Misc',
+              order: parseFloat(sub.number) || 0,
               phaseId: createdPhase.id
             }
           });
-          
+
+          // 3. Create Tasks
           const createdTasks = [];
-          
-          // Create tasks
-          for (const task of tasks) {
-            const { assigneeName, ...taskData } = task;
-            
-            // Find or create user based on name (if provided)
-            let assigneeId = null;
-            if (assigneeName) {
-              // Try to find user by name in consultant profiles
-              const consultant = await prisma.consultantProfile.findFirst({
-                where: {
-                  OR: [
-                    {
-                      contactFirstName: {
-                        contains: assigneeName,
-                        mode: 'insensitive'
-                      }
-                    },
-                    {
-                      contactLastName: {
-                        contains: assigneeName,
-                        mode: 'insensitive'
-                      }
-                    },
-                    {
-                      user: {
-                        email: {
-                          contains: assigneeName,
-                          mode: 'insensitive'
-                        }
-                      }
-                    }
-                  ]
-                },
-                select: {
-                  userId: true
-                }
-              });
-              
-              if (consultant) {
-                assigneeId = consultant.userId;
-              }
-            }
-            
-            const createdTask = await prisma.task.create({
+          for (const t of sub.tasks) {
+            // Map Excel status → TaskStatus enum
+            const statusMap = {
+              COMPLETED: 'DONE',
+              'IN PROGRESS': 'IN_PROGRESS',
+              'TO BE STARTED': 'TODO'
+            };
+            const taskStatus = statusMap[t.status?.toUpperCase()] || 'TODO';
+
+            const task = await prismaTx.task.create({
               data: {
-                ...taskData,
-                subPhaseId: createdSubPhase.id,
+                id: t.id,
+                title: t.taskName,
+                description: t.deliverables || '',
+                status: taskStatus,
+                priority: 'MEDIUM',
                 projectId,
-                assigneeId,
+                subPhaseId: createdSub.id,
                 createdById: req.user.id
               }
             });
-            
-            createdTasks.push(createdTask);
+            createdTasks.push(task);
           }
-          
+
           createdSubPhases.push({
-            ...createdSubPhase,
+            ...createdSub,
             tasks: createdTasks
           });
         }
-        
+
         createdPhases.push({
           ...createdPhase,
           subPhases: createdSubPhases
         });
       }
-      
+
       return createdPhases;
     });
 
-    // Return success response
     res.status(201).json({
       success: true,
-      message: 'Tasks imported successfully',
+      message: 'Imported successfully',
       data: {
-        phases: result.length,
-        subPhases: result.reduce((count, phase) => count + phase.subPhases.length, 0),
-        tasks: result.reduce((count, phase) => 
-          count + phase.subPhases.reduce((subCount, subPhase) => 
-            subCount + subPhase.tasks.length, 0), 0)
+        phases: created.length,
+        subPhases: created.reduce((sum, p) => sum + p.subPhases.length, 0),
+        tasks: created.reduce((sum, p) =>
+          sum + p.subPhases.reduce((s, sp) => s + sp.tasks.length, 0), 0)
       }
     });
   } catch (error) {
-    console.error('Error importing tasks from Excel:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Error importing tasks from Excel',
-    });
+    console.error('Import error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
+
+
+
