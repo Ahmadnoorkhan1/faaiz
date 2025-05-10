@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
+import toast from 'react-hot-toast';
 
 interface Task {
   id: string;
   title: string;
-  description: string;
-  dueDate: string;
-  startDate?: string;
+  description: string | null;
+  dueDate: string | null;
+  startDate: string | null;
   status: 'TO_DO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  consultantId: string;
+  consultantId: string | null;
   consultant: {
     id: string;
-    name: string;
     email: string;
-  };
+    consultantProfile?: {
+      contactFirstName: string;
+      contactLastName: string;
+    };
+  } | null;
   projectId: string;
   project: {
     id: string;
@@ -23,53 +27,48 @@ interface Task {
   phase: string;
 }
 
+interface TaskWithDateType extends Task {
+  dateType: 'start' | 'due';
+}
+
 interface Project {
   id: string;
   name: string;
+  description?: string;
+  status: string;
+  startDate: string;
+  endDate?: string;
 }
 
 interface Consultant {
   id: string;
-  name: string;
+  userId: string;
   email: string;
+  contactFirstName: string;
+  contactLastName: string;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
 }
 
 interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
-  tasks: Task[];
+  tasks: TaskWithDateType[];
 }
 
 type ViewMode = 'month' | 'week';
 
-// Compute dynamic dates for dummy tasks
-const now = new Date();
-const formatISO = (date: Date) => date.toISOString().split('T')[0];
-
-// Dummy data for UI preview with dynamic dates
-const DUMMY_PROJECTS: Project[] = [
-  { id: 'p1', name: 'Project Alpha' },
-  { id: 'p2', name: 'Project Beta' }
-];
-const DUMMY_CONSULTANTS: Consultant[] = [
-  { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com' },
-  { id: 'c2', name: 'Bob Smith', email: 'bob@example.com' }
-];
-const DUMMY_TASKS: Task[] = [
-  { id: 't1', title: 'Design UI Mockups', description: 'Initial wireframes', dueDate: formatISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)), status: 'TO_DO', priority: 'MEDIUM', consultantId: 'c1', consultant: { id: 'c1', name: 'Alice Johnson', email: '' }, projectId: 'p1', project: { id: 'p1', name: 'Project Alpha' }, phase: 'Planning' },
-  { id: 't2', title: 'Develop API Endpoints', description: 'Implement core CRUD', dueDate: formatISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2)), status: 'IN_PROGRESS', priority: 'HIGH', consultantId: 'c2', consultant: { id: 'c2', name: 'Bob Smith', email: '' }, projectId: 'p1', project: { id: 'p1', name: 'Project Alpha' }, phase: 'Development' },
-  { id: 't3', title: 'Write Unit Tests', description: 'Ensure full coverage', dueDate: formatISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3)), status: 'REVIEW', priority: 'LOW', consultantId: 'c1', consultant: { id: 'c1', name: 'Alice Johnson', email: '' }, projectId: 'p2', project: { id: 'p2', name: 'Project Beta' }, phase: 'Testing' },
-  { id: 't4', title: 'Deploy to Production', description: 'Release v1.0', dueDate: formatISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 4)), status: 'DONE', priority: 'URGENT', consultantId: 'c2', consultant: { id: 'c2', name: 'Bob Smith', email: '' }, projectId: 'p2', project: { id: 'p2', name: 'Project Beta' }, phase: 'Deployment' }
-];
-
 const Schedule: React.FC = () => {
-  // Initialize state with dummy data
-  const [tasks, setTasks] = useState<Task[]>(DUMMY_TASKS);
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>(DUMMY_TASKS);
-  const [projects, setProjects] = useState<Project[]>(DUMMY_PROJECTS);
-  const [consultants, setConsultants] = useState<Consultant[]>(DUMMY_CONSULTANTS);
-  const [loading, setLoading] = useState(false);
+  // Initialize with empty arrays, not dummy data
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   // Calendar state
@@ -85,34 +84,55 @@ const Schedule: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Remove API fetch; using dummy data
+  // Fetch data from APIs
   useEffect(() => {
-    // const fetchData = async () => {
-    //   setLoading(true);
-    //   try {
-    //     const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
-    //       api.get('/api/tasks'),
-    //       api.get('/api/projects'),
-    //       api.get('/api/consultants')
-    //     ]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
+          api.get('/api/tasks'),
+          api.get('/api/projects'),
+          api.get('/api/consultants')
+        ]);
         
-    //     setTasks(tasksRes.data);
-    //     setProjects(projectsRes.data);
-    //     setConsultants(consultantsRes.data);
-    //     setError(null);
-    //   } catch (err) {
-    //     setError('Failed to load tasks. Please try again later.');
-    //     console.error('Error fetching schedule data:', err);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
+        // Validate API responses
+        if (!tasksRes.data?.success || !projectsRes.data?.success || !consultantsRes.data?.success) {
+          throw new Error('Invalid API response format');
+        }
+        
+        // Process and set data
+        setTasks(tasksRes.data.data || []);
+        setFilteredTasks(tasksRes.data.data || []);
+        setProjects(projectsRes.data.data || []);
+        
+        // Transform consultant data to match component needs
+        const processedConsultants = consultantsRes.data.data.map((consultant: any) => ({
+          id: consultant.id,
+          userId: consultant.userId,
+          email: consultant.email,
+          contactFirstName: consultant.contactFirstName,
+          contactLastName: consultant.contactLastName,
+          user: consultant.user
+        }));
+        
+        setConsultants(processedConsultants);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching schedule data:', err);
+        setError('Failed to load schedule data. Please try again later.');
+        toast.error('Failed to load schedule: ' + (err.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // fetchData();
+    fetchData();
   }, []);
 
   // Filter tasks when filter criteria change
   useEffect(() => {
+    if (tasks.length === 0) return;
+    
     let filtered = [...tasks];
     if (selectedProject) {
       filtered = filtered.filter(task => task.projectId === selectedProject);
@@ -155,17 +175,34 @@ const Schedule: React.FC = () => {
     today.setHours(0, 0, 0, 0);
     
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dayTasks = tasksList.filter(task => {
-        const dueDate = new Date(task.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate.getTime() === new Date(d).getTime();
+      const newDate = new Date(d);
+      const dayTasksWithType: TaskWithDateType[] = [];
+      
+      // Check for tasks with due date matching this day
+      tasksList.forEach(task => {
+        if (task.dueDate) {
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          if (dueDate.getTime() === newDate.getTime()) {
+            dayTasksWithType.push({...task, dateType: 'due'});
+          }
+        }
+        
+        // Check for tasks with start date matching this day
+        if (task.startDate) {
+          const taskStartDate = new Date(task.startDate);
+          taskStartDate.setHours(0, 0, 0, 0);
+          if (taskStartDate.getTime() === newDate.getTime()) {
+            dayTasksWithType.push({...task, dateType: 'start'});
+          }
+        }
       });
       
       days.push({
-        date: new Date(d),
-        isCurrentMonth: d.getMonth() === month,
-        isToday: d.getTime() === today.getTime(),
-        tasks: dayTasks
+        date: newDate,
+        isCurrentMonth: newDate.getMonth() === month,
+        isToday: newDate.getTime() === today.getTime(),
+        tasks: dayTasksWithType
       });
     }
     
@@ -189,17 +226,33 @@ const Schedule: React.FC = () => {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
       
-      const dayTasks = tasksList.filter(task => {
-        const dueDate = new Date(task.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate.getTime() === d.getTime();
+      const dayTasksWithType: TaskWithDateType[] = [];
+      
+      // Check for tasks with due date matching this day
+      tasksList.forEach(task => {
+        if (task.dueDate) {
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          if (dueDate.getTime() === d.getTime()) {
+            dayTasksWithType.push({...task, dateType: 'due'});
+          }
+        }
+        
+        // Check for tasks with start date matching this day
+        if (task.startDate) {
+          const taskStartDate = new Date(task.startDate);
+          taskStartDate.setHours(0, 0, 0, 0);
+          if (taskStartDate.getTime() === d.getTime()) {
+            dayTasksWithType.push({...task, dateType: 'start'});
+          }
+        }
       });
       
       days.push({
         date: new Date(d),
         isCurrentMonth: d.getMonth() === currentDay.getMonth(),
         isToday: d.getTime() === today.getTime(),
-        tasks: dayTasks
+        tasks: dayTasksWithType
       });
     }
     
@@ -267,10 +320,22 @@ const Schedule: React.FC = () => {
     }
   };
   
+  // Get date type indicator class
+  const getDateTypeClass = (dateType: 'start' | 'due') => {
+    return dateType === 'start' 
+      ? 'bg-green-500/20 text-green-400' 
+      : 'bg-orange-500/20 text-orange-400';
+  };
+  
   // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   // Format month year for display
@@ -286,6 +351,15 @@ const Schedule: React.FC = () => {
   // Get day name
   const getDayName = (date: Date) => {
     return date.toLocaleDateString('default', { weekday: 'short' });
+  };
+  
+  // Get consultant name
+  const getConsultantName = (consultant: Task['consultant']) => {
+    if (!consultant) return 'Unassigned';
+    if (consultant.consultantProfile) {
+      return `${consultant.consultantProfile.contactFirstName} ${consultant.consultantProfile.contactLastName}`;
+    }
+    return consultant.email || 'Unknown';
   };
 
   return (
@@ -318,7 +392,9 @@ const Schedule: React.FC = () => {
             >
               <option value="">All Consultants</option>
               {consultants.map(consultant => (
-                <option key={consultant.id} value={consultant.id}>{consultant.name}</option>
+                <option key={consultant.userId} value={consultant.userId}>
+                  {consultant.contactFirstName} {consultant.contactLastName}
+                </option>
               ))}
             </select>
           </div>
@@ -365,13 +441,36 @@ const Schedule: React.FC = () => {
         </div>
       </div>
 
-      {/* Calendar */}
-      {
-       error ? (
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-[#1a1f2b] rounded-xl shadow-lg flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
         <div className="bg-red-500/20 text-red-400 p-4 rounded-lg">
           {error}
         </div>
-      ) : (
+      )}
+
+      {/* Legend for calendar */}
+      {!loading && !error && (
+        <div className="flex items-center gap-4 text-xs text-gray-400">
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500/50 mr-1"></span>
+            Start Date
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 rounded-full bg-orange-500/50 mr-1"></span>
+            Due Date
+          </div>
+        </div>
+      )}
+
+      {/* Calendar */}
+      {!loading && !error && (
         <div className="bg-[#1a1f2b] rounded-xl shadow-lg overflow-hidden">
           <div className="p-4 border-b border-gray-700">
             <h2 className="text-xl font-medium text-gray-200">
@@ -416,14 +515,14 @@ const Schedule: React.FC = () => {
                 
                 {/* Tasks for this day */}
                 <div className="space-y-1 overflow-y-auto max-h-40">
-                  {(() => {
-                    const phases = Array.from(new Set(day.tasks.map(t => t.phase)));
+                  {day.tasks.length > 0 ? (() => {
+                    const phases = Array.from(new Set(day.tasks.map(t => t.phase || 'No Phase')));
                     return phases.map(phase => (
                       <React.Fragment key={phase}>
                         <div className="text-xs font-semibold text-gray-400 mb-1">{phase}</div>
-                        {day.tasks.filter(t => t.phase === phase).map(task => (
+                        {day.tasks.filter(t => (t.phase || 'No Phase') === phase).map(task => (
                           <div 
-                            key={task.id}
+                            key={`${task.id}-${task.dateType}`}
                             className="bg-[#242935] rounded p-1.5 cursor-pointer hover:bg-[#2d3444] transition-colors"
                             onClick={() => {
                               setSelectedTask(task);
@@ -431,11 +530,24 @@ const Schedule: React.FC = () => {
                             }}
                           >
                             <div className="flex items-start space-x-1">
-                              <span className={`inline-block w-1.5 h-1.5 rounded-full mt-1.5 ${getPriorityBadgeClass(task.priority).replace('text-', 'bg-').replace('/20', '')}`}></span>
+                              <span 
+                                className={`inline-block w-1.5 h-1.5 rounded-full mt-1.5 ${
+                                  task.dateType === 'start' ? 'bg-green-500' : 'bg-orange-500'
+                                }`}
+                              ></span>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-gray-200 truncate">{task.title}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs font-medium text-gray-200 truncate" title={task.title}>
+                                    {task.title}
+                                  </p>
+                                  <span className="text-xs font-medium px-1 rounded-sm bg-opacity-20 whitespace-nowrap">
+                                    {task.dateType === 'start' ? '(Start)' : '(Due)'}
+                                  </span>
+                                </div>
                                 {viewMode === 'week' && (
-                                  <p className="text-xs text-gray-400 truncate">{task.project?.name}</p>
+                                  <p className="text-xs text-gray-400 truncate" title={task.project?.name || 'No Project'}>
+                                    {task.project?.name || 'No Project'}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -443,7 +555,11 @@ const Schedule: React.FC = () => {
                         ))}
                       </React.Fragment>
                     ));
-                  })()}
+                  })() : (
+                    day.isCurrentMonth && (
+                      <div className="text-xs text-gray-500 text-center py-2">No tasks</div>
+                    )
+                  )}
                 </div>
               </div>
             ))}
@@ -486,21 +602,28 @@ const Schedule: React.FC = () => {
                       </button>
                     </div>
                     
-                    <div className="flex items-center space-x-3 mb-4">
+                    <div className="flex items-center gap-2 flex-wrap mb-4">
                       <span className={`${getPriorityBadgeClass(selectedTask.priority)} rounded-full px-2.5 py-1 text-xs`}>
                         {selectedTask.priority}
                       </span>
                       <span className={`${getStatusBadgeClass(selectedTask.status)} rounded-full px-2.5 py-1 text-xs`}>
                         {selectedTask.status.replace('_', ' ')}
                       </span>
-                      <span className="text-gray-400 text-sm">
-                        Due: {formatDate(selectedTask.dueDate)}
-                      </span>
+                      {selectedTask.startDate && (
+                        <span className="bg-green-500/20 text-green-400 rounded-full px-2.5 py-1 text-xs">
+                          Start: {formatDate(selectedTask.startDate)}
+                        </span>
+                      )}
+                      {selectedTask.dueDate && (
+                        <span className="bg-orange-500/20 text-orange-400 rounded-full px-2.5 py-1 text-xs">
+                          Due: {formatDate(selectedTask.dueDate)}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="border-t border-gray-700 pt-4 pb-3">
                       <p className="text-gray-300 whitespace-pre-wrap">
-                        {selectedTask.description}
+                        {selectedTask.description || 'No description provided'}
                       </p>
                     </div>
                     
@@ -514,14 +637,20 @@ const Schedule: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium text-gray-300">Assigned to</h4>
                         <span className="text-sm text-gray-400">
-                          {selectedTask.consultant?.name || 'Unassigned'}
+                          {getConsultantName(selectedTask.consultant)}
                         </span>
                       </div>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-4 flex justify-end">
                       <div className="space-x-2">
-                        <button className="px-3 py-1.5 bg-[#242935] text-gray-300 rounded-lg hover:bg-[#2d3444] transition-colors text-sm">
+                        <button 
+                          className="px-3 py-1.5 bg-[#242935] text-gray-300 rounded-lg hover:bg-[#2d3444] transition-colors text-sm"
+                          onClick={() => {
+                            setShowModal(false);
+                            setSelectedTask(null);
+                          }}
+                        >
                           Close
                         </button>
                         <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
@@ -540,4 +669,4 @@ const Schedule: React.FC = () => {
   );
 };
 
-export default Schedule; 
+export default Schedule;

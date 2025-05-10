@@ -41,7 +41,7 @@ const TopNav: React.FC<TopNavProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <div className="h-16 bg-[#1a1f2b] flex items-center justify-between px-4 ml-16">
+    <div className="h-16 bg-[#1a1f2b] flex items-center justify-between px-4 ">
       {/* Search Bar */}
       <div className="flex-1 max-w-2xl relative">
         <div className="relative">

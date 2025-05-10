@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
+import toast from 'react-hot-toast';
 
 interface Task {
   id: string;
   title: string;
-  description: string;
-  dueDate: string;
+  description: string | null;
+  dueDate: string | null;
+  startDate: string | null;
   status: 'TO_DO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  consultantId: string;
+  consultantId: string | null;
   consultant: {
     id: string;
-    name: string;
     email: string;
-  };
+    consultantProfile?: {
+      contactFirstName: string;
+      contactLastName: string;
+    };
+  } | null;
   projectId: string;
   project: {
     id: string;
@@ -31,36 +36,37 @@ interface TaskColumn {
 interface Project {
   id: string;
   name: string;
+  description?: string;
+  status: string;
+  startDate: string;
+  endDate?: string;
 }
 
 interface Consultant {
   id: string;
-  name: string;
+  userId: string;
   email: string;
+  contactFirstName: string;
+  contactLastName: string;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
 }
 
-// Dummy data for UI preview
-const DUMMY_PROJECTS: Project[] = [
-  { id: 'p1', name: 'Project Alpha' },
-  { id: 'p2', name: 'Project Beta' }
-];
-const DUMMY_CONSULTANTS: Consultant[] = [
-  { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com' },
-  { id: 'c2', name: 'Bob Smith', email: 'bob@example.com' }
-];
-const DUMMY_TASKS: Task[] = [
-  { id: 't1', title: 'Design UI Mockups', description: 'Initial user flows & wireframes', dueDate: '2023-08-10', status: 'TO_DO', priority: 'MEDIUM', consultantId: 'c1', consultant: { id: 'c1', name: 'Alice Johnson', email: '' }, projectId: 'p1', project: { id: 'p1', name: 'Project Alpha' }, phase: 'Planning' },
-  { id: 't2', title: 'Develop API Endpoints', description: 'Implement CRUD endpoints', dueDate: '2023-08-12', status: 'IN_PROGRESS', priority: 'HIGH', consultantId: 'c2', consultant: { id: 'c2', name: 'Bob Smith', email: '' }, projectId: 'p1', project: { id: 'p1', name: 'Project Alpha' }, phase: 'Development' },
-  { id: 't3', title: 'Write Unit Tests', description: 'Ensure 80% coverage', dueDate: '2023-08-15', status: 'REVIEW', priority: 'LOW', consultantId: 'c1', consultant: { id: 'c1', name: 'Alice Johnson', email: '' }, projectId: 'p2', project: { id: 'p2', name: 'Project Beta' }, phase: 'Testing' },
-  { id: 't4', title: 'Deploy to Production', description: 'Release v1.0', dueDate: '2023-08-18', status: 'DONE', priority: 'URGENT', consultantId: 'c2', consultant: { id: 'c2', name: 'Bob Smith', email: '' }, projectId: 'p2', project: { id: 'p2', name: 'Project Beta' }, phase: 'Deployment' }
-];
-
 const Board: React.FC = () => {
-  // Initialize with dummy data - will be overwritten by filter effect
-  const [columns, setColumns] = useState<TaskColumn[]>([]);
-  const [projects, setProjects] = useState<Project[]>(DUMMY_PROJECTS);
-  const [consultants, setConsultants] = useState<Consultant[]>(DUMMY_CONSULTANTS);
-  const [loading, setLoading] = useState(false);
+  // Initialize with empty data - will be populated from API
+  const [columns, setColumns] = useState<TaskColumn[]>([
+    { id: 'TO_DO', title: 'To Do', tasks: [] },
+    { id: 'IN_PROGRESS', title: 'In Progress', tasks: [] },
+    { id: 'REVIEW', title: 'Review', tasks: [] },
+    { id: 'DONE', title: 'Done', tasks: [] }
+  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filter state
@@ -76,84 +82,109 @@ const Board: React.FC = () => {
 
   // Fetch initial board data on mount
   useEffect(() => {
-    // On mount, also group DUMMY_TASKS for initial render
-    const initialColumns: TaskColumn[] = [
-      { id: 'TO_DO', title: 'To Do', tasks: DUMMY_TASKS.filter(t => t.status === 'TO_DO') },
-      { id: 'IN_PROGRESS', title: 'In Progress', tasks: DUMMY_TASKS.filter(t => t.status === 'IN_PROGRESS') },
-      { id: 'REVIEW', title: 'Review', tasks: DUMMY_TASKS.filter(t => t.status === 'REVIEW') },
-      { id: 'DONE', title: 'Done', tasks: DUMMY_TASKS.filter(t => t.status === 'DONE') }
-    ];
-    setColumns(initialColumns);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
+          api.get('/api/tasks'),
+          api.get('/api/projects'),
+          api.get('/api/consultants')
+        ]);
+        
+        // Validate API responses
+        if (!tasksRes.data?.success || !projectsRes.data?.success || !consultantsRes.data?.success) {
+          throw new Error('Invalid API response format');
+        }
+        
+        // Process and set data
+        const fetchedTasks = tasksRes.data.data || [];
+        setTasks(fetchedTasks);
+        
+        // Group tasks by status
+        const initialColumns = [
+          { id: 'TO_DO', title: 'To Do', tasks: fetchedTasks.filter((t:any) => t.status === 'TO_DO') },
+          { id: 'IN_PROGRESS', title: 'In Progress', tasks: fetchedTasks.filter((t:any) => t.status === 'IN_PROGRESS') },
+          { id: 'REVIEW', title: 'Review', tasks: fetchedTasks.filter((t:any) => t.status === 'REVIEW') },
+          { id: 'DONE', title: 'Done', tasks: fetchedTasks.filter((t:any) => t.status === 'DONE') }
+        ];
+        setColumns(initialColumns);
+        
+        setProjects(projectsRes.data.data || []);
+        
+        // Transform consultant data to match component needs
+        const processedConsultants = consultantsRes.data.data.map((consultant: any) => ({
+          id: consultant.id,
+          userId: consultant.userId,
+          email: consultant.email,
+          contactFirstName: consultant.contactFirstName,
+          contactLastName: consultant.contactLastName,
+          user: consultant.user
+        }));
+        
+        setConsultants(processedConsultants);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching board data:', err);
+        setError('Failed to load tasks. Please try again later.');
+        toast.error('Failed to load tasks: ' + (err.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   // Update columns when filters change
   useEffect(() => {
-    // const fetchData = async () => {
-    //   setLoading(true);
-    //   try {
-    //     const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
-    //       api.get('/api/tasks'),
-    //       api.get('/api/projects'),
-    //       api.get('/api/consultants')
-    //     ]);
-        
-    //     // Group tasks by status
-    //     const tasks = tasksRes.data;
-    //     const groupedTasks = columns.map(column => ({
-    //       ...column,
-    //       tasks: tasks.filter((task: Task) => {
-    //         let matches = task.status === column.id;
-            
-    //         if (selectedProject && task.projectId !== selectedProject) {
-    //           matches = false;
-    //         }
-            
-    //         if (selectedConsultant && task.consultantId !== selectedConsultant) {
-    //           matches = false;
-    //         }
-            
-    //         return matches;
-    //       })
-    //     }));
-        
-    //     setColumns(groupedTasks);
-    //     setProjects(projectsRes.data);
-    //     setConsultants(consultantsRes.data);
-    //     setError(null);
-    //   } catch (err) {
-    //     setError('Failed to load tasks. Please try again later.');
-    //     console.error('Error fetching board data:', err);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
+    if (tasks.length === 0) return;
     
-    // fetchData();
-    const filteredTasks = DUMMY_TASKS.filter(task => {
+    // Filter tasks based on selected filters
+    const filteredTasks = tasks.filter(task => {
       let matches = true;
       if (selectedProject && task.projectId !== selectedProject) matches = false;
       if (selectedConsultant && task.consultantId !== selectedConsultant) matches = false;
       return matches;
     });
-    const grouped: TaskColumn[] = [
+    
+    // Group filtered tasks by status
+    const newColumns = [
       { id: 'TO_DO', title: 'To Do', tasks: filteredTasks.filter(t => t.status === 'TO_DO') },
       { id: 'IN_PROGRESS', title: 'In Progress', tasks: filteredTasks.filter(t => t.status === 'IN_PROGRESS') },
       { id: 'REVIEW', title: 'Review', tasks: filteredTasks.filter(t => t.status === 'REVIEW') },
       { id: 'DONE', title: 'Done', tasks: filteredTasks.filter(t => t.status === 'DONE') }
     ];
-    setColumns(grouped);
-  }, [selectedProject, selectedConsultant]);
+    
+    setColumns(newColumns);
+  }, [tasks, selectedProject, selectedConsultant]);
 
   // Update task status on drag and drop
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
-    // local update for dummy
-    setColumns(cols => cols.map(col => ({
-      ...col,
-      tasks: col.tasks.filter(t => t.id !== taskId)
-    })).map(col => col.id === newStatus ? {
-      ...col,
-      tasks: [...col.tasks, ...DUMMY_TASKS.filter(t => t.id === taskId).map(t => ({...t, status: newStatus as Task['status']}))]
-    } : col));
+    try {
+      setLoading(true);
+      
+      // Optimistic update (update locally first)
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus as Task['status'] } : task
+      );
+      setTasks(updatedTasks);
+      
+      // Send update to server
+      const response = await api.put(`/api/tasks/${taskId}`, { TaskStatus: newStatus });
+      
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'Failed to update task status');
+      }
+      
+      toast.success('Task status updated');
+    } catch (err: any) {
+      // Revert optimistic update on error
+      setTasks(tasks); // Reset to original state
+      console.error('Error updating task status:', err);
+      toast.error(err.message || 'Failed to update task status');
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Handle drag start
@@ -211,30 +242,49 @@ const Board: React.FC = () => {
   };
   
   // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
   };
   
   // Calculate days remaining
-  const getDaysRemaining = (dueDate: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDueDate = new Date(dueDate);
-    taskDueDate.setHours(0, 0, 0, 0);
-    const diffTime = taskDueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+  const getDaysRemaining = (dueDate: string | null) => {
+    if (!dueDate) return null;
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskDueDate = new Date(dueDate);
+      taskDueDate.setHours(0, 0, 0, 0);
+      const diffTime = taskDueDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    } catch {
+      return null;
+    }
+  };
+  
+  // Get consultant name
+  const getConsultantName = (consultant: Task['consultant']) => {
+    if (!consultant) return 'Unassigned';
+    if (consultant.consultantProfile) {
+      return `${consultant.consultantProfile.contactFirstName} ${consultant.consultantProfile.contactLastName}`;
+    }
+    return consultant.email || 'Unknown';
   };
   
   // Get avatar initials
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+  const getInitials = (consultant: Task['consultant']) => {
+    if (!consultant) return 'NA';
+    if (consultant.consultantProfile) {
+      return `${consultant.consultantProfile.contactFirstName[0]}${consultant.consultantProfile.contactLastName[0]}`.toUpperCase();
+    }
+    return consultant.email?.substring(0, 2).toUpperCase() || 'NA';
   };
 
   return (
@@ -266,19 +316,30 @@ const Board: React.FC = () => {
           >
             <option value="">All Consultants</option>
             {consultants.map(consultant => (
-              <option key={consultant.id} value={consultant.id}>{consultant.name}</option>
+              <option key={consultant.userId} value={consultant.userId}>
+                {consultant.contactFirstName} {consultant.contactLastName}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      {
-       error ? (
+      {/* Loading State */}
+      {loading && !error && (
+        <div className="bg-[#1a1f2b] rounded-xl shadow-lg flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
         <div className="bg-red-500/20 text-red-400 p-4 rounded-lg">
           {error}
         </div>
-      ) : (
+      )}
+
+      {/* Kanban Board */}
+      {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {columns.map(column => (
             <div 
@@ -294,69 +355,91 @@ const Board: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex-1 min-h-[70vh] space-y-6 overflow-y-auto">
+              <div className="flex-1 min-h-[50vh] space-y-6 overflow-y-auto">
                 {column.tasks.length === 0 ? (
                   <div className="border-2 border-dashed border-gray-700 rounded-lg h-24 flex items-center justify-center text-gray-500 text-sm">
                     No tasks in this column
                   </div>
                 ) : (
-                  (() => {
-                    const phases = Array.from(new Set(column.tasks.map(t => t.phase)));
-                    return phases.map(phase => (
-                      <div key={phase} className="space-y-2">
-                        <div className="px-2 py-1 bg-[#242935] text-gray-300 text-sm font-medium rounded">
-                          {phase}
-                        </div>
-                        {column.tasks
-                          .filter(t => t.phase === phase)
-                          .map(task => (
-                            <div
-                              key={task.id}
-                              id={`task-${task.id}`}
-                              className="bg-[#242935] rounded-lg p-4 shadow cursor-pointer"
-                              draggable
-                              onDragStart={e => handleDragStart(e, task.id)}
-                              onClick={() => {
-                                setSelectedTask(task);
-                                setShowModal(true);
-                              }}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-medium text-gray-200 flex-1">{task.title}</h3>
-                                <span className={`${getPriorityBadgeClass(task.priority)} rounded-full px-2 py-0.5 text-xs ml-2`}>
-                                  {task.priority}
-                                </span>
-                              </div>
-                              
-                              <p className="text-gray-400 text-sm mb-3 line-clamp-2">{task.description}</p>
-                              
-                              <div className="flex justify-between items-center">
-                                <div className="text-xs text-gray-500">
-                                  {task.project?.name || 'No Project'}
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  {task.consultant && (
-                                    <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">
-                                      {getInitials(task.consultant.name)}
-                                    </div>
-                                  )}
-                                  <div className={`text-xs ${getDaysRemaining(task.dueDate) < 0 ? 'text-red-400' : getDaysRemaining(task.dueDate) <= 2 ? 'text-orange-400' : 'text-gray-400'}`}>
-                                    {getDaysRemaining(task.dueDate) === 0 ? 'Due today' : 
-                                     getDaysRemaining(task.dueDate) > 0 ? `${getDaysRemaining(task.dueDate)}d left` : 
-                                     `${Math.abs(getDaysRemaining(task.dueDate))}d overdue`}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    ));
-                  })()
+                 (() => {
+  const phases = Array.from(new Set(column.tasks.map(t => t.phase || 'No Phase')));
+  return phases.map(phase => (
+    <div key={phase} className="space-y-3">
+      <div className="px-3 py-1.5 bg-[#2b2f3c] text-gray-300 text-sm font-semibold rounded">
+        {phase}
+      </div>
+      {column.tasks
+        .filter(t => (t.phase || 'No Phase') === phase)
+        .map(task => (
+          <div
+            key={task.id}
+            id={`task-${task.id}`}
+            className="bg-[#1f2430] rounded-lg px-4 py-5 shadow-sm cursor-pointer transition-all duration-200 hover:bg-[#2a2f3c]"
+            style={{ minHeight: '150px' }}
+            draggable
+            onDragStart={e => handleDragStart(e, task.id)}
+            onClick={() => {
+              setSelectedTask(task);
+              setShowModal(true);
+            }}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-gray-200 text-sm truncate w-3/4" title={task.title}>
+                {task.title}
+              </h3>
+              <span className={`${getPriorityBadgeClass(task.priority)} rounded-full px-2 py-0.5 text-xs whitespace-nowrap`}>
+                {task.priority}
+              </span>
+            </div>
+
+            {task.description && (
+              <p className="text-gray-400 text-xs mb-4 line-clamp-3" title={task.description}>
+                {task.description}
+              </p>
+            )}
+
+            <div className="flex justify-between items-center text-xs text-gray-500">
+              <span className="truncate w-1/2" title={task.project?.name || 'No Project'}>
+                {task.project?.name || 'No Project'}
+              </span>
+              <div className="flex items-center space-x-2">
+                {task.consultant && (
+                  <div 
+                    className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs"
+                    title={getConsultantName(task.consultant)}
+                  >
+                    {getInitials(task.consultant)}
+                  </div>
+                )}
+                {task.dueDate && getDaysRemaining(task.dueDate) !== null && (
+                  <div className={`text-xs ${
+                    getDaysRemaining(task.dueDate)! < 0 ? 'text-red-400' :
+                    getDaysRemaining(task.dueDate)! <= 2 ? 'text-orange-400' :
+                    'text-gray-400'
+                  }`}>
+                    {getDaysRemaining(task.dueDate) === 0 ? 'Due today' :
+                     getDaysRemaining(task.dueDate)! > 0 ? `${getDaysRemaining(task.dueDate)}d left` :
+                     `${Math.abs(getDaysRemaining(task.dueDate)!)}d overdue`}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  ));
+})()
+
                 )}
               </div>
               
               <button 
                 className="mt-3 w-full py-2 bg-[#242935] hover:bg-[#2d3444] text-gray-400 rounded-lg transition-colors flex items-center justify-center"
+                onClick={() => {
+                  // Create a new empty task with this status
+                  setSelectedTask(null);
+                  setShowModal(true);
+                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -369,7 +452,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Task Detail Modal */}
-      {showModal && selectedTask && (
+      {showModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div 
@@ -388,7 +471,7 @@ const Board: React.FC = () => {
                   <div className="mt-3 sm:mt-0 sm:ml-4 sm:text-left w-full">
                     <div className="flex justify-between items-start">
                       <h3 className="text-lg font-medium text-gray-200 mb-2">
-                        {selectedTask.title}
+                        {selectedTask ? selectedTask.title : 'Create New Task'}
                       </h3>
                       <button 
                         onClick={() => {
@@ -403,68 +486,157 @@ const Board: React.FC = () => {
                       </button>
                     </div>
                     
-                    <div className="flex items-center space-x-3 mb-4">
-                      <span className={`${getPriorityBadgeClass(selectedTask.priority)} rounded-full px-2.5 py-1 text-xs`}>
-                        {selectedTask.priority}
-                      </span>
-                      <span className="text-gray-400 text-sm">
-                        Due: {formatDate(selectedTask.dueDate)}
-                      </span>
-                    </div>
-                    
-                    <div className="border-t border-gray-700 pt-4 pb-3">
-                      <p className="text-gray-300 whitespace-pre-wrap">
-                        {selectedTask.description}
-                      </p>
-                    </div>
-                    
-                    <div className="border-t border-gray-700 pt-4 pb-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-gray-300">Project</h4>
-                        <span className="text-sm text-gray-400">
-                          {selectedTask.project?.name || 'No Project'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-gray-300">Assigned to</h4>
-                        <div className="flex items-center">
-                          {selectedTask.consultant && (
-                            <>
-                              <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs mr-2">
-                                {getInitials(selectedTask.consultant.name)}
-                              </div>
-                              <span className="text-sm text-gray-400">
-                                {selectedTask.consultant.name}
-                              </span>
-                            </>
-                          )}
+                    {selectedTask ? (
+                      <>
+                        <div className="flex items-center space-x-3 mb-4">
+                          <span className={`${getPriorityBadgeClass(selectedTask.priority)} rounded-full px-2.5 py-1 text-xs`}>
+                            {selectedTask.priority}
+                          </span>
+                          <span className="text-gray-400 text-sm">
+                            Due: {formatDate(selectedTask.dueDate)}
+                          </span>
+                        </div>
+                        
+                        <div className="border-t border-gray-700 pt-4 pb-3">
+                          <p className="text-gray-300 whitespace-pre-wrap">
+                            {selectedTask.description || 'No description provided'}
+                          </p>
+                        </div>
+                        
+                        <div className="border-t border-gray-700 pt-4 pb-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-gray-300">Project</h4>
+                            <span className="text-sm text-gray-400">
+                              {selectedTask.project?.name || 'No Project'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-300">Assigned to</h4>
+                            <div className="flex items-center">
+                              {selectedTask.consultant ? (
+                                <>
+                                  <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs mr-2">
+                                    {getInitials(selectedTask.consultant)}
+                                  </div>
+                                  <span className="text-sm text-gray-400">
+                                    {getConsultantName(selectedTask.consultant)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-gray-400">Unassigned</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border-t border-gray-700 pt-4 flex justify-between">
+                          <div>
+                            <select
+                              value={selectedTask.status}
+                              onChange={async (e) => {
+                                const newStatus = e.target.value as Task['status'];
+                                await updateTaskStatus(selectedTask.id, newStatus);
+                                setSelectedTask({...selectedTask, status: newStatus});
+                              }}
+                              className="bg-[#242935] text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 text-sm"
+                            >
+                              <option value="TO_DO">To Do</option>
+                              <option value="IN_PROGRESS">In Progress</option>
+                              <option value="REVIEW">Review</option>
+                              <option value="DONE">Done</option>
+                            </select>
+                          </div>
+                          <div className="space-x-2">
+                            <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-4">
+                        <p className="text-gray-400 mb-4">
+                          Create a new task to add to your workflow.
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+                            <input
+                              type="text"
+                              className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Task title"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
+                            <textarea
+                              rows={3}
+                              className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Task description"
+                            ></textarea>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">Due Date</label>
+                              <input
+                                type="date"
+                                className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">Priority</label>
+                              <select
+                                className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
+                                <option value="URGENT">Urgent</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">Project</label>
+                              <select
+                                className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="">Select Project</option>
+                                {projects.map(project => (
+                                  <option key={project.id} value={project.id}>{project.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">Consultant</label>
+                              <select
+                                className="w-full bg-[#242935] text-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="">Unassigned</option>
+                                {consultants.map(consultant => (
+                                  <option key={consultant.userId} value={consultant.userId}>
+                                    {consultant.contactFirstName} {consultant.contactLastName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-700">
+                            <button
+                              onClick={() => setShowModal(false)}
+                              className="px-4 py-2 bg-[#242935] text-gray-300 rounded-lg hover:bg-[#2d3444]"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                            >
+                              Create Task
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="border-t border-gray-700 pt-4 flex justify-between">
-                      <div>
-                        <select
-                          value={selectedTask.status}
-                          onChange={async (e) => {
-                            const newStatus = e.target.value as Task['status'];
-                            await updateTaskStatus(selectedTask.id, newStatus);
-                            setSelectedTask({...selectedTask, status: newStatus});
-                          }}
-                          className="bg-[#242935] text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 text-sm"
-                        >
-                          <option value="TO_DO">To Do</option>
-                          <option value="IN_PROGRESS">In Progress</option>
-                          <option value="REVIEW">Review</option>
-                          <option value="DONE">Done</option>
-                        </select>
-                      </div>
-                      <div className="space-x-2">
-                        <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm">
-                          Edit
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -476,4 +648,4 @@ const Board: React.FC = () => {
   );
 };
 
-export default Board; 
+export default Board;
