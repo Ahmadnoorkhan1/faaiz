@@ -6,32 +6,37 @@ const LegalTerms: React.FC = () => {
   const { register, formState: { errors } } = useFormContext<ClientFormData>();
 
   return (
-    <div className="space-y-6">
-      <div className="border border-[#003175] rounded-lg p-4 max-h-60 overflow-y-auto">
-        <h3 className="text-lg font-medium text-white mb-4">
-          Terms and Conditions
-        </h3>
-        <div className="prose prose-sm text-white/70">
-          <p>Please review and accept our terms and conditions...</p>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies aliquam, nunc nisl aliquet nunc, eget aliquam nisl nunc vel nunc.</p>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies aliquam, nunc nisl aliquet nunc, eget aliquam nisl nunc vel nunc.</p>
-        </div>
+    <section className="bg-[#001f3f] border border-[#003175] rounded-2xl p-6 space-y-6 text-white shadow-lg">
+      <h2 className="text-xl font-semibold">Terms and Conditions</h2>
+
+      <div className="max-h-64 overflow-y-auto space-y-4 text-sm text-white/80 leading-relaxed pr-2">
+        <p>
+          Please review and accept our terms and conditions to proceed. These terms outline the rights and responsibilities of both parties throughout the engagement.
+        </p>
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies aliquam, nunc nisl aliquet nunc, eget aliquam nisl nunc vel nunc.
+        </p>
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies aliquam, nunc nisl aliquet nunc, eget aliquam nisl nunc vel nunc.
+        </p>
       </div>
-      <div className="flex items-center">
+
+      <div className="flex items-start gap-3">
         <input
           type="checkbox"
           id="termsAccepted"
           {...register('termsAccepted')}
-          className="h-4 w-4 text-[#0078D4] focus:ring-[#0078D4] border-[#003175] rounded"
+          className="mt-1 h-5 w-5 text-[#5B93C7] focus:ring-[#5B93C7] border-[#003175] rounded-md"
         />
-        <label htmlFor="termsAccepted" className="ml-2 block text-sm text-white">
+        <label htmlFor="termsAccepted" className="text-sm">
           I accept the terms and conditions
         </label>
       </div>
+
       {errors.termsAccepted && (
-        <p className="mt-1 text-sm text-red-500">{errors.termsAccepted.message}</p>
+        <p className="text-sm text-red-500">{errors.termsAccepted.message}</p>
       )}
-    </div>
+    </section>
   );
 };
 

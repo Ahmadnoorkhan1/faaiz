@@ -1,27 +1,16 @@
 import express from 'express';
-import { authenticateToken } from '../middlewares/auth.js';
-import { authorize } from '../middlewares/auth.js';
-import { 
-  getAllPermissions,
-  createPermission,
-  updatePermission,
-  deletePermission
-} from '../controllers/permissionController.js';
+import { getPermissions, getPermissionById, createPermission, updatePermission, deletePermission } from '../controllers/permissionController.js';
+import { authorize, hasPermission } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// Apply authentication middleware
-router.use(authenticateToken);
+// Public routes
+router.get('/', getPermissions);
+router.get('/:id', getPermissionById);
 
-// Only admin can manage permissions
-router.use(authorize('ADMIN'));
-
-router.route('/')
-  .get(getAllPermissions)
-  .post(createPermission);
-
-router.route('/:id')
-  .put(updatePermission)
-  .delete(deletePermission);
+// Protected admin-only routes
+router.post('/', authorize, hasPermission, createPermission);
+router.put('/:id', authorize, hasPermission, updatePermission);
+router.delete('/:id', authorize, hasPermission, deletePermission);
 
 export default router;

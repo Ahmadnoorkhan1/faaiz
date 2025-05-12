@@ -1,27 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
 
-interface Consultant {
-  id: string;
-  email: string;
-  role: string;
-  consultantProfile: {
-    id: string;
-    contactFirstName: string;
-    contactLastName: string;
-    email: string;
-    phone: string;
-    position: string;
-    industry: string;
-    organizationWebsite: string;
-    servicesOffered: string[];
-    onboardingStatus: string;
-  };
-  projects: any[];
-}
 
 const ConsultantsList: React.FC = () => {
-  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [consultants, setConsultants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +27,7 @@ const ConsultantsList: React.FC = () => {
   }, []);
 
   const filteredConsultants = consultants.filter(consultant => {
-    const fullName = `${consultant.consultantProfile?.contactFirstName || ''} ${consultant.consultantProfile?.contactLastName || ''}`.toLowerCase();
+    const fullName = `${consultant.contactFirstName || ''} ${consultant.contactLastName || ''}`.toLowerCase();
     const matchesSearch = 
       fullName.includes(searchTerm.toLowerCase()) ||
       consultant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,8 +52,8 @@ const ConsultantsList: React.FC = () => {
     }
   };
 
-  const getConsultantProjects = (consultant: Consultant) => {
-    return consultant.projects?.length || 0;
+  const getConsultantProjects = (consultant: any) => {
+    return consultant.servicesOffered?.length || 0;
   };
 
   return (
@@ -165,9 +147,9 @@ const ConsultantsList: React.FC = () => {
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Name</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Email</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Role</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-400">Assigned Projects</th>
+                  <th className="px-6 py-3 text-xs font-medium text-gray-400">Services</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Status</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-400">Actions</th>
+                  {/* <th className="px-6 py-3 text-xs font-medium text-gray-400">Actions</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -177,20 +159,20 @@ const ConsultantsList: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                            {consultant.consultantProfile?.contactFirstName?.charAt(0) || consultant.email.charAt(0).toUpperCase()}
+                            {consultant?.contactFirstName?.charAt(0).toUpperCase() || consultant.email.charAt(0).toUpperCase()}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-200">
-                              {consultant.consultantProfile?.contactFirstName 
-                                ? `${consultant.consultantProfile.contactFirstName} ${consultant.consultantProfile.contactLastName}`
+                              {consultant?.contactFirstName 
+                                ? `${consultant.contactFirstName} ${consultant.contactLastName}`
                                 : 'N/A'}
                             </div>
-                            <div className="text-xs text-gray-400">{consultant.consultantProfile?.position || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">{consultant?.position || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-200">{consultant.email}</td>
-                      <td className="px-6 py-4 text-gray-200">{consultant.consultantProfile?.industry || 'N/A'}</td>
+                      <td className="px-6 py-4 text-gray-200">{consultant?.industry || 'N/A'}</td>
                       <td className="px-6 py-4 text-gray-200">{getConsultantProjects(consultant)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -198,9 +180,9 @@ const ConsultantsList: React.FC = () => {
                           {consultant.consultantProfile?.onboardingStatus?.replace('_', ' ') || 'NOT STARTED'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      {/* <td className="px-6 py-4">
                         <button className="text-blue-500 hover:text-blue-400">View Details</button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 ) : (

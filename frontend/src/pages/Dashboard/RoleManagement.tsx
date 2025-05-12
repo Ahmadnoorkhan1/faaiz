@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import api, { get, post, update, remove } from '../../service/apiService';
 import { toast } from 'react-hot-toast';
 
+interface Permission {
+  id: string;
+  name: string;
+  type: string;
+  resource: string;
+  description: string;
+}
+
 interface Role {
   id: string;
   name: string;
@@ -30,7 +38,7 @@ interface User {
 const RoleManagement: React.FC = () => {
   const [creatingRole, setCreatingRole] = useState(false);
   const [newRoleData, setNewRoleData] = useState<{ name: string; description: string; permissions: string[] }>({ name: '', description: '', permissions: [] });
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,15 +52,19 @@ const RoleManagement: React.FC = () => {
       try {
         setLoading(true);
         
-        // Attempting to use real API calls
-        const [rolesResponse, usersResponse] = await Promise.all([
+        // Fetch roles, users and permissions
+        const [rolesResponse, consultantResponse,clientResponse, permissionsResponse] = await Promise.all([
           get('/api/roles'),
-          get('/api/consultants')
+          get('/api/consultants'),
+          get('/api/clients'),
+          get('/api/permissions')
         ] as any);
         
         // Log responses for debugging
         console.log('Roles API response:', rolesResponse);
-        console.log('Users API response:', usersResponse);
+        console.log('Consultants API response:', consultantResponse);
+        console.log('Clients API response:', clientResponse);
+        console.log('Permissions API response:', permissionsResponse);
         
         if (Array.isArray(rolesResponse?.data)) {
           setRoles(rolesResponse.data);
@@ -62,20 +74,32 @@ const RoleManagement: React.FC = () => {
           toast.error('Roles data has an unexpected format');
           setRoles([]);
         }
+
         
-        if (Array.isArray(usersResponse?.data)) {
-          setUsers(usersResponse.data);
-          toast.success(`Successfully loaded ${usersResponse.data.length} users`);
+        if (Array.isArray(consultantResponse?.data) && Array.isArray(clientResponse?.data)) {
+          const consultantUsers = consultantResponse.data.map((item:any)=>item.user)
+          const clientUsers = clientResponse.data.map((item:any)=>item.user);
+          setUsers([...consultantUsers, ...clientUsers]);
+          toast.success(`Successfully loaded ${consultantResponse.data.length} users`);
         } else {
-          console.warn('Users API returned unexpected format:', usersResponse);
+          console.warn('Users API returned unexpected format:', consultantResponse);
           toast.error('Users data has an unexpected format');
           setUsers([]);
+        }
+        
+        if (Array.isArray(permissionsResponse?.data)) {
+          setPermissions(permissionsResponse.data);
+          toast.success(`Successfully loaded ${permissionsResponse.data.length} permissions`);
+        } else {
+          console.warn('Permissions API returned unexpected format:', permissionsResponse);
+          toast.error('Permissions data has an unexpected format');
+          setPermissions([]);
         }
         
         setLoading(false);
         toast.dismiss();
       } catch (err) {
-        console.error('Error fetching roles and users:', err);
+        console.error('Error fetching data:', err);
         toast.error(`Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setError('Failed to load data. Please try again later.');
         setLoading(false);
@@ -84,6 +108,15 @@ const RoleManagement: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Group permissions by resource for better organization
+  const permissionsByResource = permissions.reduce((acc, permission) => {
+    if (!acc[permission.resource]) {
+      acc[permission.resource] = [];
+    }
+    acc[permission.resource].push(permission);
+    return acc;
+  }, {} as Record<string, Permission[]>);
 
   const handleUserSelect = async (userId: string) => {
     setSelectedUser(userId);
@@ -152,7 +185,7 @@ const RoleManagement: React.FC = () => {
   };
 
   const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+   user && user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -202,7 +235,7 @@ const RoleManagement: React.FC = () => {
                     className={`p-3 rounded-lg cursor-pointer transition-colors ${
                       selectedUser === user.id ? 'bg-blue-600 text-white' : 'bg-[#242935] text-gray-200 hover:bg-[#2e3446]'
                     }`}
-                    onClick={() => handleUserSelect(user.userId)}
+                    onClick={() => handleUserSelect(user.id)}
                   >
                     <div className="font-medium">{user.email}</div>
                     <div className={`text-xs ${selectedUser === user.id ? 'text-blue-100' : 'text-gray-400'}`}>
@@ -235,26 +268,48 @@ const RoleManagement: React.FC = () => {
                   onChange={e => setNewRoleData(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full mb-4 bg-[#1a1f2b] text-gray-200 px-3 py-2 rounded-lg focus:ring-blue-500"
                 />
-                <p className="text-gray-200 mb-1">Permissions</p>
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {roles.flatMap(role => role.permissions).map((p, idx) => (
-                    <label key={idx} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={newRoleData.permissions.includes(p.permission.id)}
-                        onChange={() => setNewRoleData(prev => ({
-                          ...prev,
-                          permissions: prev.permissions.includes(p.permission.id)
-                            ? prev.permissions.filter(id => id !== p.permission.id)
-                            : [...prev.permissions, p.permission.id]
-                        }))}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span className="text-gray-200">{p.permission.name}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex justify-end space-x-2">
+                
+                {Object.keys(permissionsByResource).length > 0 ? (
+                  <>
+                    <p className="text-gray-200 mb-2">Permissions</p>
+                    <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                      {Object.entries(permissionsByResource).map(([resource, perms]) => (
+                        <div key={resource} className="mb-3">
+                          <h4 className="text-sm font-semibold text-blue-400 mb-2 uppercase">{resource}</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {perms.map(permission => (
+                              <label key={permission.id} className="flex items-start space-x-2 bg-[#1a1f2b] p-2 rounded-md">
+                                <input
+                                  type="checkbox"
+                                  checked={newRoleData.permissions.includes(permission.id)}
+                                  onChange={() => setNewRoleData(prev => ({
+                                    ...prev,
+                                    permissions: prev.permissions.includes(permission.id)
+                                      ? prev.permissions.filter(id => id !== permission.id)
+                                      : [...prev.permissions, permission.id]
+                                  }))}
+                                  className="h-4 w-4 mt-0.5 text-blue-600 rounded"
+                                />
+                                <div>
+                                  <div className="text-gray-200 text-sm">{permission.name}</div>
+                                  {permission.description && (
+                                    <div className="text-gray-400 text-xs">{permission.description}</div>
+                                  )}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-gray-400">
+                    No permissions available. Please create permissions first.
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-2 mt-4">
                   <button
                     onClick={() => setCreatingRole(false)}
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg"

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useProfile } from '../../utils/ProfileContext';
+// import { useuser } from '../../utils/userContext';
 import { get } from '../../service/apiService';
+import { useAuth } from '../../utils/AuthContext';
 
 const Dashboard: React.FC = () => {
-  const { 
-    userType,
-    profileData
-  } = useProfile();
+  const {user} = useAuth();
+
+  console.log(user, ' <<< This is the user type');
 
   const [ndaSigned, setNdaSigned] = useState<boolean | null>(null);
   const [ndaLoading, setNdaLoading] = useState<boolean>(false);
@@ -15,10 +15,10 @@ const Dashboard: React.FC = () => {
   // Check NDA status for consultants
   useEffect(() => {
     const checkNdaStatus = async () => {
-      if (userType === 'consultant' && profileData?.id) {
+      if (user.role === 'CONSULTANT' && user?.id) {
         setNdaLoading(true);
         try {
-          const response = await get<{ data: { ndaSigned: boolean } }>(`/api/consultants/${profileData.id}/nda-status`);
+          const response = await get<{ data: { ndaSigned: boolean } }>(`/api/consultants/${user.id}/nda-status`);
           setNdaSigned(response.data.ndaSigned);
         } catch (error) {
           console.error('Error checking NDA status:', error);
@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
     };
 
     checkNdaStatus();
-  }, [userType, profileData]);
+  }, [user, user]);
 
   const stats = [
     {
@@ -96,7 +96,7 @@ const Dashboard: React.FC = () => {
           <div className="ml-3">
             <p className="text-sm text-yellow-500 font-medium">
               You must sign the Non-Disclosure Agreement before proceeding with consulting work.
-              <Link to="/profile" className="ml-2 font-bold underline">
+              <Link to="/user" className="ml-2 font-bold underline">
                 Sign NDA
               </Link>
             </p>
@@ -106,62 +106,14 @@ const Dashboard: React.FC = () => {
     );
   };
 
-  // If user has no profile yet
-  if (userType === 'none') {
-    return (
-      <div className="min-h-screen bg-[#0f1117] py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#1a1f2b] rounded-xl shadow-lg p-8">
-            <h1 className="text-2xl font-bold text-gray-200">Welcome to GRC Solutions</h1>
-            <p className="mt-4 text-gray-400">
-              To get started, please select your role to complete the onboarding process:
-            </p>
-            
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div className="bg-[#242935] rounded-xl p-6 hover:bg-[#2d3544] transition-colors">
-                <h2 className="text-xl font-medium text-gray-200">I'm a Client</h2>
-                <p className="mt-2 text-gray-400">
-                  Organizations seeking GRC solutions and consulting services.
-                </p>
-                <div className="mt-6">
-                  <Link
-                    to="/onboard/client"
-                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                  >
-                    Complete Client Onboarding
-                  </Link>
-                </div>
-              </div>
-              
-              <div className="bg-[#242935] rounded-xl p-6 hover:bg-[#2d3544] transition-colors">
-                <h2 className="text-xl font-medium text-gray-200">I'm a Consultant</h2>
-                <p className="mt-2 text-gray-400">
-                  Professionals providing GRC consulting services to organizations.
-                </p>
-                <div className="mt-6">
-                  <Link
-                    to="/onboard/consultant"
-                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                  >
-                    Complete Consultant Onboarding
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Client Dashboard
-  if (userType === 'client' && profileData ) {
+  if (user === 'CLIENT' && user ) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-200">Client Dashboard</h1>
-            <p className="text-gray-400 mt-1">Welcome back, {profileData?.companyName}</p>
+            <p className="text-gray-400 mt-1">Welcome back, {user?.companyName}</p>
           </div>
           <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             Generate Report
@@ -249,25 +201,25 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Profile Information */}
+        {/* user Information */}
         <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Profile Information</h2>
+          <h2 className="text-xl font-semibold text-gray-200 mb-4">user Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-medium text-gray-400">Company Name</h3>
-              <p className="mt-1 text-gray-200">{profileData.companyName}</p>
+              <p className="mt-1 text-gray-200">{user.companyName}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Industry</h3>
-              <p className="mt-1 text-gray-200">{profileData.industry}</p>
+              <p className="mt-1 text-gray-200">{user.industry}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Contact Person</h3>
-              <p className="mt-1 text-gray-200">{profileData.contactName}</p>
+              <p className="mt-1 text-gray-200">{user.contactName}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Contact Information</h3>
-              <p className="mt-1 text-gray-200">{profileData.contactEmail}</p>
+              <p className="mt-1 text-gray-200">{user.contactEmail}</p>
             </div>
           </div>
         </div>
@@ -276,16 +228,16 @@ const Dashboard: React.FC = () => {
   }
 
   // Consultant Dashboard
-  if (userType === 'consultant' && profileData ) {
+  if (user === 'CONSULTANT' && user ) {
     return (
       <div className="space-y-6">
         {/* NDA Banner */}
-        {userType === 'consultant' && !ndaLoading && ndaSigned === false && <NDABanner />}
+        {user === 'consultant' && !ndaLoading && ndaSigned === false && <NDABanner />}
         
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-200">Consultant Dashboard</h1>
-            <p className="text-gray-400 mt-1">Welcome back, {profileData.name}</p>
+            <p className="text-gray-400 mt-1">Welcome back, {user.name}</p>
           </div>
           <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             Generate Report
@@ -342,25 +294,25 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Profile Information */}
+        {/* user Information */}
         <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Profile Information</h2>
+          <h2 className="text-xl font-semibold text-gray-200 mb-4">user Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-medium text-gray-400">Name</h3>
-              <p className="mt-1 text-gray-200">{profileData.name}</p>
+              <p className="mt-1 text-gray-200">{user.name}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Expertise</h3>
-              <p className="mt-1 text-gray-200">{profileData.expertise}</p>
+              <p className="mt-1 text-gray-200">{user.expertise}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Contact Information</h3>
-              <p className="mt-1 text-gray-200">{profileData.email}</p>
+              <p className="mt-1 text-gray-200">{user.email}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-400">Experience</h3>
-              <p className="mt-1 text-gray-200">{profileData.yearsOfExperience} years</p>
+              <p className="mt-1 text-gray-200">{user.yearsOfExperience} years</p>
             </div>
           </div>
         </div>

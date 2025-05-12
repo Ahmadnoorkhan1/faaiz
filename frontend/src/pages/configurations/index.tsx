@@ -3,6 +3,7 @@ import api from '../../service/apiService';
 import ProjectProposalUpload from './components/ProjectProposalUpload';
 import ProjectPlanUpload from './components/ProjectPlanUpload';
 import toast, { Toaster } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 interface ConfigItem {
   id: string;
@@ -361,7 +362,7 @@ const Configurations: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8">
       {/* Toast container */}
       <Toaster 
         position="top-right"
@@ -400,20 +401,17 @@ const Configurations: React.FC = () => {
           ))}
         </nav>
       </div>
-
+      
       {activeTab === 'Configurations' && (
         <> 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-200">Platform Configurations</h1>
-              <p className="text-gray-400 mt-1">Manage system-wide settings and configurations</p>
+              <h1 className="text-2xl font-semibold text-white">Configuration Settings</h1>
+              <p className="text-gray-400 mt-1">
+                Manage system configurations and templates
+              </p>
             </div>
-            <button 
-              onClick={() => setNewConfig({ key: '', value: '', category: activeCategory || '' })}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add New Configuration
-            </button>
+            
           </div>
 
           {loading ? (
@@ -421,37 +419,44 @@ const Configurations: React.FC = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {/* Categories Sidebar */}
-              <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-                <h2 className="text-lg font-medium text-gray-200 mb-4">Categories</h2>
-                <div className="space-y-2">
-                  {Object.keys(configurations).length > 0 ? (
-                    Object.keys(configurations).map(category => (
-                      <div 
-                        key={category}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                          activeCategory === category ? 'bg-blue-600 text-white' : 'bg-[#242935] text-gray-200 hover:bg-[#2e3446]'
-                        }`}
-                        onClick={() => {
-                          setActiveCategory(category);
-                          // Reset the form states when selecting a category
-                          setNewConfig(null);
-                          setEditingConfig(null);
-                        }}
-                      >
-                        <div className="font-medium">{category}</div>
-                        <div className={`text-xs ${activeCategory === category ? 'text-blue-100' : 'text-gray-400'}`}>
-                          {configurations[category].length} config{configurations[category].length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-4 text-gray-400">
-                      No configurations found
-                    </div>
-                  )}
+            <div className="space-y-6">
+              {/* Configuration category tabs */}
+              <div className="bg-[#242935] rounded-xl p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-medium text-white">
+                    Configuration Categories
+                  </h2>
                 </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {Object.keys(configurations).map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`px-3 py-1.5 rounded-lg text-sm ${
+                        activeCategory === category
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-[#1a1f2b] text-gray-300 hover:bg-[#323a50]'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rest of configurations tab content */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold text-gray-200">Platform Configurations</h1>
+                  <p className="text-gray-400 mt-1">Manage system-wide settings and configurations</p>
+                </div>
+                <button 
+                  onClick={() => setNewConfig({ key: '', value: '', category: activeCategory || '' })}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add New Configuration
+                </button>
               </div>
 
               {/* Configuration Content */}
@@ -469,7 +474,8 @@ const Configurations: React.FC = () => {
                 ) : activeCategory === 'Project Plan' ? (
                   <ProjectPlanUpload
                     configurations={configurations[activeCategory] || []}
-                    projectId={activeCategory === 'Project Plan' ? activeCategory : ''}
+                    // category=''
+                    // projectId=''
                   />
                 ) : activeCategory && configurations[activeCategory] ? (
                   <>

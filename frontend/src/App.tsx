@@ -31,7 +31,6 @@ import Profile from "./pages/Dashboard/Profile";
 import ScheduledCalls from "./pages/Dashboard/ScheduledCalls";
 import Documents from "./pages/Dashboard/Documents";
 import ScheduleCall from './pages/Dashboard/ScheduleCall';
-import TeamsChannels from './pages/Dashboard/TeamsChannels';
 import WorkWithUs from "./pages/WorkWithUs";
 import SignUp from "./pages/SignUp";
 
@@ -129,7 +128,7 @@ const AppContent: React.FC = () => {
             <Route path="/scheduled-calls" element={<ScheduledCalls />} />
             <Route path="/schedule-call" element={<ScheduleCall />} />
             <Route path="/documents" element={<Documents />} />
-            <Route path="/teams-channels" element={<TeamsChannels />} />
+            {/* <Route path="/teams-channels" element={<TeamsChannels />} /> */}
             
             {/* New routes */}
             <Route path="/projects" element={<Projects />} />

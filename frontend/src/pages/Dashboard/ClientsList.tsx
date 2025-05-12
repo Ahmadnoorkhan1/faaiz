@@ -37,11 +37,11 @@ const ClientsList: React.FC = () => {
     fetchClients();
   }, []);
 
-  const filteredClients = clients.filter(client => {
+  const filteredClients = clients.filter((client:any) => {
     const matchesSearch = 
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.company.toLowerCase().includes(searchTerm.toLowerCase());
+      client.fullName && client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.user && client.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.organization && client.organization.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filterStatus === 'all' || client.status === filterStatus;
     
@@ -169,36 +169,36 @@ const ClientsList: React.FC = () => {
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Email</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Assigned Projects</th>
                   <th className="px-6 py-3 text-xs font-medium text-gray-400">Account Status</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-400">Actions</th>
+                  {/* <th className="px-6 py-3 text-xs font-medium text-gray-400">Actions</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {filteredClients.length > 0 ? (
-                  filteredClients.map((client) => (
+                  filteredClients.map((client:any) => (
                     <tr key={client.id} className="hover:bg-[#242935] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                            {getClientInitials(client.name)}
+                            {getClientInitials(client.fullName)}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-200">{client.name}</div>
-                            <div className="text-xs text-gray-400">{client.phone}</div>
+                            <div className="text-sm font-medium text-gray-200">{client.fullName}</div>
+                            <div className="text-xs text-gray-400">{client.phoneNumber}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-200">{client.company}</td>
-                      <td className="px-6 py-4 text-gray-200">{client.email}</td>
-                      <td className="px-6 py-4 text-gray-200">{client.assignedProjects}</td>
+                      <td className="px-6 py-4 text-gray-200">{client.organization}</td>
+                      <td className="px-6 py-4 text-gray-200">{client.user.email}</td>
+                      <td className="px-6 py-4 text-gray-200">{client.requestedServices[0]}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${getStatusBadgeClass(client.status)}`}>
-                          {client.status.replace('_', ' ')}
+                          ${getStatusBadgeClass('COMPLETED')}`}>
+                           COMPLETED
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      {/* <td className="px-6 py-4">
                         <button className="text-blue-500 hover:text-blue-400">View Details</button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 ) : (
