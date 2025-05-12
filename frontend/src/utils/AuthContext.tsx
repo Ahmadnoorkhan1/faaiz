@@ -19,6 +19,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Custom event for logout
 export const LOGOUT_EVENT = 'app:logout';
 
+// Key for storing user data in localStorage
+export const USER_DATA_KEY = 'userData';
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -30,6 +33,29 @@ export const useAuth = () => {
 // Add this debug function
 const debug = (message: string, data?: any) => {
   console.log(`[Auth] ${message}`, data || '');
+};
+
+// Helper function to save user data to localStorage
+const saveUserData = (userData: any) => {
+  try {
+    const userDataString = JSON.stringify(userData);
+    localStorage.setItem(USER_DATA_KEY, userDataString);
+    debug('User data saved to localStorage');
+  } catch (error) {
+    console.error('Error saving user data to localStorage:', error);
+  }
+};
+
+// Helper function to get user data from localStorage
+const getUserDataFromStorage = (): any | null => {
+  try {
+    const userDataString = localStorage.getItem(USER_DATA_KEY);
+    if (!userDataString) return null;
+    return JSON.parse(userDataString);
+  } catch (error) {
+    console.error('Error parsing user data from localStorage:', error);
+    return null;
+  }
 };
 
 // Auth provider component
@@ -52,16 +78,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
+        // Try to load user data from localStorage first for immediate UI display
+        const storedUserData = getUserDataFromStorage();
+        if (storedUserData) {
+          debug('Setting user state from localStorage:', storedUserData);
+          setUser(storedUserData);
+        }
+
         try {
+          // Verify token with server and get fresh user data
           const response = await api.get('/api/auth/me');
           debug('Auth check response:', response.data);
 
           if (response.data?.success && response.data?.data) {
-            debug('Setting user state:', response.data.data);
-            setUser(response.data.data);
+            const freshUserData = response.data.data;
+            debug('Setting user state from API:', freshUserData);
+            setUser(freshUserData);
+            
+            // Update localStorage with fresh data
+            saveUserData(freshUserData);
           } else {
             debug('Invalid response format, clearing auth state');
             clearUserData();
+            localStorage.removeItem(USER_DATA_KEY);
             setUser(null);
           }
         } catch (error: any) {
@@ -71,6 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (error.response?.status === 401) {
             debug('Token invalid or expired, clearing auth state');
             clearUserData();
+            localStorage.removeItem(USER_DATA_KEY);
             setUser(null);
           } else {
             console.error('Error checking authentication status:', error);
@@ -104,10 +144,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Set user data immediately
       setUser(userData);
       
+      // Store user data in localStorage
+      saveUserData(userData);
+      
       // Get fresh user data from /me endpoint
       const meResponse = await api.get('/api/auth/me');
       if (meResponse.data?.success && meResponse.data?.data) {
-        setUser(meResponse.data.data);
+        const freshUserData = meResponse.data.data;
+        setUser(freshUserData);
+        
+        // Update localStorage with fresh data
+        saveUserData(freshUserData);
       }
       
       toast.success('Login successful!');
@@ -128,6 +175,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Clear all user data
       clearUserData();
+      localStorage.removeItem(USER_DATA_KEY);
       setUser(null);
       
       // Remove authorization header
@@ -165,4 +213,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}; 
+};

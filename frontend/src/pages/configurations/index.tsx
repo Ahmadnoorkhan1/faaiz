@@ -139,7 +139,6 @@ const Configurations: React.FC = () => {
   const [selectedConsultant, setSelectedConsultant] = useState<string>('');
   const [selectedCategoryFB, setSelectedCategoryFB] = useState<string>(FEEDBACK_CATEGORIES[0]);
   const [feedbackData, setFeedbackData] = useState<Record<string, {score:number; comment:string}>>({});
-
   useEffect(() => {
     const fetchConfigurations = async () => {
       try {
@@ -167,7 +166,7 @@ const Configurations: React.FC = () => {
       }
     };
     fetchConfigurations();
-  }, [activeCategory]);
+  }, []); // Empty dependency array to only run once on component mount
 
   const handleSaveConfig = async (config: Partial<ConfigItem>) => {
     try {
