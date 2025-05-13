@@ -85,48 +85,104 @@ const Board: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
-          api.get('/api/tasks'),
-          api.get('/api/projects'),
-          api.get('/api/consultants')
-        ]);
-        
-        // Validate API responses
-        if (!tasksRes.data?.success || !projectsRes.data?.success || !consultantsRes.data?.success) {
-          throw new Error('Invalid API response format');
+        // Get user data from localStorage
+        const userDataString = localStorage.getItem('userData');
+        if (!userDataString) {
+          throw new Error('User data not found. Please log in again.');
         }
         
-        // Process and set data
-        const fetchedTasks = tasksRes.data.data || [];
-        setTasks(fetchedTasks);
+        const userData = JSON.parse(userDataString);
+        const userId = userData.id;
         
-        // Group tasks by status
-        const initialColumns = [
-          { id: 'TO_DO', title: 'To Do', tasks: fetchedTasks.filter((t:any) => t.status === 'TO_DO') },
-          { id: 'IN_PROGRESS', title: 'In Progress', tasks: fetchedTasks.filter((t:any) => t.status === 'IN_PROGRESS') },
-          { id: 'REVIEW', title: 'Review', tasks: fetchedTasks.filter((t:any) => t.status === 'REVIEW') },
-          { id: 'DONE', title: 'Done', tasks: fetchedTasks.filter((t:any) => t.status === 'DONE') }
-        ];
-        setColumns(initialColumns);
+        if (!userId) {
+          throw new Error('User ID not found. Please log in again.');
+        }
         
-        setProjects(projectsRes.data.data || []);
+        console.log('Fetching board data for user:', userId);
         
-        // Transform consultant data to match component needs
-        const processedConsultants = consultantsRes.data.data.map((consultant: any) => ({
-          id: consultant.id,
-          userId: consultant.userId,
-          email: consultant.email,
-          contactFirstName: consultant.contactFirstName,
-          contactLastName: consultant.contactLastName,
-          user: consultant.user
-        }));
+        // Using Promise.allSettled to handle partial failures gracefully
+        const [tasksResult, projectsResult, consultantsResult] = await Promise.allSettled([
+          api.get(`/api/tasks?userId=${userId}`),
+          api.get(`/api/projects?userId=${userId}`),
+          api.get( `/api/consultants/user/${userId}`)
+        ]);
         
-        setConsultants(processedConsultants);
-        setError(null);
+        // Process tasks response
+        if (tasksResult.status === 'fulfilled' && tasksResult.value.data?.success) {
+          const fetchedTasks = tasksResult.value.data.data || [];
+          setTasks(fetchedTasks);
+          
+          // Group tasks by status
+          const initialColumns = [
+            { id: 'TO_DO', title: 'To Do', tasks: fetchedTasks.filter((t:any) => t.status === 'TO_DO') },
+            { id: 'IN_PROGRESS', title: 'In Progress', tasks: fetchedTasks.filter((t:any) => t.status === 'IN_PROGRESS') },
+            { id: 'REVIEW', title: 'Review', tasks: fetchedTasks.filter((t:any) => t.status === 'REVIEW') },
+            { id: 'DONE', title: 'Done', tasks: fetchedTasks.filter((t:any) => t.status === 'DONE') }
+          ];
+          setColumns(initialColumns);
+        } else {
+          console.warn('Could not fetch tasks:', 
+            tasksResult.status === 'rejected' ? tasksResult.reason : 'API returned unsuccessful response');
+          toast.error('Could not load tasks. Please try again later.');
+          setTasks([]);
+          setColumns([
+            { id: 'TO_DO', title: 'To Do', tasks: [] },
+            { id: 'IN_PROGRESS', title: 'In Progress', tasks: [] },
+            { id: 'REVIEW', title: 'Review', tasks: [] },
+            { id: 'DONE', title: 'Done', tasks: [] }
+          ]);
+        }
+        
+        // Process projects response
+        if (projectsResult.status === 'fulfilled' && projectsResult.value.data?.success) {
+          setProjects(projectsResult.value.data.data || []);
+        } else {
+          console.warn('Could not fetch projects:', 
+            projectsResult.status === 'rejected' ? projectsResult.reason : 'API returned unsuccessful response');
+          toast.error('Projects data could not be loaded. Some filter options may be limited.');
+          setProjects([]);
+        }
+        
+        // Process consultants response
+        if (consultantsResult.status === 'fulfilled' && consultantsResult.value.data?.success) {
+          // Transform consultant data to match component needs
+          const processedConsultants = consultantsResult.value.data.data.map((consultant: any) => ({
+            id: consultant.id,
+            userId: consultant.userId,
+            email: consultant.email,
+            contactFirstName: consultant.contactFirstName || 'Unknown',
+            contactLastName: consultant.contactLastName || 'Consultant',
+            user: consultant.user
+          }));
+          
+          setConsultants(processedConsultants);
+        } else {
+          const errorMessage = consultantsResult.status === 'rejected' ? 
+            consultantsResult.reason?.response?.data?.message || consultantsResult.reason?.message : 
+            'API returned unsuccessful response';
+            
+          console.warn('Could not fetch consultants:', errorMessage);
+          
+          // Only show toast if it's not the "Consultant profile not found" error
+          if (errorMessage !== 'Consultant profile not found') {
+            toast.error('Consultant data could not be loaded. Assignment filters may be limited.');
+          }
+          
+          setConsultants([]);
+        }
+        
+        // Only set error if all APIs failed
+        if (tasksResult.status === 'rejected' && 
+            projectsResult.status === 'rejected' && 
+            consultantsResult.status === 'rejected') {
+          setError('Failed to load board data. Please check your connection and try again later.');
+        } else {
+          setError(null);
+        }
       } catch (err: any) {
         console.error('Error fetching board data:', err);
         setError('Failed to load tasks. Please try again later.');
-        toast.error('Failed to load tasks: ' + (err.message || 'Unknown error'));
+        toast.error('Failed to load board data: ' + (err.message || 'Unknown error'));
       } finally {
         setLoading(false);
       }

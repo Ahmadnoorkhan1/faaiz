@@ -99,38 +99,89 @@ const Tasks: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tasksRes, projectsRes, consultantsRes] = await Promise.all([
-          api.get('/api/tasks'),
-          api.get('/api/projects'),
-          api.get('/api/consultants')
-        ]);
-        
-        // Validate API responses
-        if (!tasksRes.data?.success || !projectsRes.data?.success || !consultantsRes.data?.success) {
-          throw new Error('Invalid API response format');
+        // Get user data from localStorage
+        const userDataString = localStorage.getItem('userData');
+        if (!userDataString) {
+          throw new Error('User data not found. Please log in again.');
         }
         
-        // Process and set data
-        setTasks(tasksRes.data.data || []);
-        setFilteredTasks(tasksRes.data.data || []);
-        setProjects(projectsRes.data.data || []);
+        const userData = JSON.parse(userDataString);
+        const userId = userData.id;
         
-        // Transform consultant data to match component needs
-        const processedConsultants = consultantsRes.data.data.map((consultant: any) => ({
-          id: consultant.id,
-          userId: consultant.userId,
-          email: consultant.email,
-          contactFirstName: consultant.contactFirstName,
-          contactLastName: consultant.contactLastName,
-          user: consultant.user
-        }));
+        if (!userId) {
+          throw new Error('User ID not found. Please log in again.');
+        }
         
-        setConsultants(processedConsultants);
-        setError(null);
+        console.log('Fetching data for user:', userId);
+        
+        // Fetch tasks and projects with userId parameter
+        // Using Promise.allSettled to handle partial failures gracefully
+        const [tasksResult, projectsResult, consultantsResult] = await Promise.allSettled([
+          api.get(`/api/tasks?userId=${userId}`),
+          api.get(`/api/projects?userId=${userId}`),
+          api.get(  `/api/consultants/user/${userId}`)
+        ]);
+        
+        // Process tasks response
+        if (tasksResult.status === 'fulfilled' && tasksResult.value.data?.success) {
+          setTasks(tasksResult.value.data.data || []);
+          setFilteredTasks(tasksResult.value.data.data || []);
+        } else {
+          console.warn('Could not fetch tasks:', 
+            tasksResult.status === 'rejected' ? tasksResult.reason : 'API returned unsuccessful response');
+          toast.error('Could not load tasks. Please try again later.');
+          setTasks([]);
+          setFilteredTasks([]);
+        }
+        
+        // Process projects response
+        if (projectsResult.status === 'fulfilled' && projectsResult.value.data?.success) {
+          setProjects(projectsResult.value.data.data || []);
+        } else {
+          console.warn('Could not fetch projects:', 
+            projectsResult.status === 'rejected' ? projectsResult.reason : 'API returned unsuccessful response');
+          toast.error('Projects data could not be loaded. Some features may be limited.');
+          setProjects([]);
+        }
+        
+        // Process consultants response
+        if (consultantsResult.status === 'fulfilled' && consultantsResult.value.data?.success) {
+          const processedConsultants = consultantsResult.value.data.data.map((consultant: any) => ({
+            id: consultant.id,
+            userId: consultant.userId,
+            email: consultant.email,
+            contactFirstName: consultant.contactFirstName || 'Unknown',
+            contactLastName: consultant.contactLastName || 'Consultant',
+            user: consultant.user
+          }));
+          setConsultants(processedConsultants);
+        } else {
+          const errorMessage = consultantsResult.status === 'rejected' ? 
+            consultantsResult.reason?.response?.data?.message || consultantsResult.reason?.message : 
+            'API returned unsuccessful response';
+            
+          console.warn('Could not fetch consultants:', errorMessage);
+          
+          // Only show toast if it's not the "Consultant profile not found" error
+          if (errorMessage !== 'Consultant profile not found') {
+            toast.error('Consultant data could not be loaded. Assignment features may be limited.');
+          }
+          
+          setConsultants([]);
+        }
+        
+        // Only set error if all APIs failed
+        if (tasksResult.status === 'rejected' && 
+            projectsResult.status === 'rejected' && 
+            consultantsResult.status === 'rejected') {
+          setError('Failed to load data. Please check your connection and try again later.');
+        } else {
+          setError(null);
+        }
       } catch (err: any) {
         console.error('Error fetching task data:', err);
+        toast.error('Failed to load data: ' + (err.message || 'Unknown error'));
         setError('Failed to load tasks. Please try again later.');
-        toast.error('Failed to load tasks: ' + (err.message || 'Unknown error'));
       } finally {
         setLoading(false);
       }

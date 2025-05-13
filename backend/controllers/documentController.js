@@ -202,60 +202,64 @@ export const documentController = {
 
   // Get documents by service type
   async getDocumentsByService(req, res) {
-    try {
-      // Check if user is authenticated
-      if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
-      }
-
-      const { serviceType } = req.params;      // Validate serviceType
-      if (!Object.values(ServiceType).includes(serviceType)) {
-        return res.status(400).json({ 
-          error: 'Invalid service type',
-          validTypes: Object.values(ServiceType)
-        });
-      }
-
-      const documents = await prisma.document.findMany({
-        where: {
-          serviceType,
-          OR: [
-            { clientId: req.user.id },
-            { consultantId: req.user.id },
-            { uploadedById: req.user.id },
-          ]
-        },
-        include: {
-          client: {
-            select: {
-              id: true,
-              email: true,
-            },
-          },
-          consultant: {
-            select: {
-              id: true,
-              email: true,
-            },
-          },
-          uploadedBy: {
-            select: {
-              id: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+  try {
+    const { serviceType } = req.params;
+    
+    // Validate serviceType
+    if (!Object.values(ServiceType).includes(serviceType)) {
+      return res.status(400).json({ 
+        error: 'Invalid service type',
+        validTypes: Object.values(ServiceType)
       });
-
-      res.json(documents || []);
-    } catch (error) {
-      console.error('Error fetching documents by service:', error);
-      res.status(500).json({ error: 'Failed to fetch documents' });
     }
-  },
+
+    // Build where clause without user check
+    const whereClause = {
+      serviceType
+    };
+
+    // Add user filter only if user is authenticated
+    if (req.user && req.user.id) {
+      whereClause.OR = [
+        { clientId: req.user.id },
+        { consultantId: req.user.id },
+        { uploadedById: req.user.id },
+      ];
+    }
+
+    const documents = await prisma.document.findMany({
+      where: whereClause,
+      include: {
+        client: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        consultant: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        uploadedBy: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json(documents || []);
+  } catch (error) {
+    console.error('Error fetching documents by service:', error);
+    res.status(500).json({ error: 'Failed to fetch documents' });
+  }
+},
   // Get all available service types
   async getServiceTypes(req, res) {
     try {
@@ -265,7 +269,7 @@ export const documentController = {
       console.error('Error fetching service types:', error);
       res.status(500).json({ error: 'Failed to fetch service types' });
     }
-  },
+  }, 
 
   // Update a document
   async updateDocument(req, res) {

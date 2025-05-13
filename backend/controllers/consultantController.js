@@ -14,9 +14,43 @@ const prisma = new PrismaClient();
  */
 export const getConsultantProfiles = async (req, res, next) => {
   try {
-    const consultantProfiles = await prisma.consultantProfile.findMany({
-        include: { user: { select: { id: true, email: true, role: true } } },
+    const { userId } = req.query;
+    
+    // Build where clause
+    let whereClause = {};
+    
+    if (userId) {
+      // Check user role first
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true }
       });
+      
+      // If user is not an admin, apply user-specific filtering
+      if (user && user.role !== 'ADMIN') {
+        // For consultants, only show their own profile
+        if (user.role === 'CONSULTANT') {
+          whereClause.userId = userId;
+        } else {
+          // For clients or others, use default behavior (determined by your business logic)
+          // Here we're allowing clients to see all consultants, but you may want to filter
+          // to only consultants working on their projects
+        }
+      }
+    }
+    
+    const consultantProfiles = await prisma.consultantProfile.findMany({
+      where: whereClause,
+      include: { 
+        user: { 
+          select: { 
+            id: true, 
+            email: true, 
+            role: true 
+          } 
+        } 
+      },
+    });
     
     res.status(200).json({
       success: true,
@@ -64,11 +98,14 @@ export const getConsultantProfileById = async (req, res, next) => {
 export const getConsultantProfileByUserId = async (req, res, next) => {
   try {
     const consultantProfile = await prisma.consultantProfile.findUnique({
-      where: { userId:req.params.userId },
+      where: { userId: req.params.userId },
     });
   
     if (!consultantProfile) {
-      throw new Error('Consultant profile not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Consultant profile not found'
+      });
     }
   
     res.status(200).json({
@@ -76,7 +113,12 @@ export const getConsultantProfileByUserId = async (req, res, next) => {
       data: consultantProfile,
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching consultant profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching consultant profile',
+      error: error.message
+    });
   }
 };
 
@@ -389,7 +431,7 @@ export const signNDA = async (req, res) => {
 
     // Check if consultant exists
     const consultant = await prisma.consultantProfile.findUnique({ 
-      where: { userId:id },
+      where: { id },
       include: { user: { select: { id: true, email: true } } }
     });
     
@@ -646,4 +688,4 @@ export const getNDAStatus = async (req, res) => {
       message: 'Error checking NDA status'
     });
   }
-}; 
+};

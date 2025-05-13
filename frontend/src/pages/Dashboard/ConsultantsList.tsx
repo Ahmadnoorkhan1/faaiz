@@ -11,14 +11,21 @@ const ConsultantsList: React.FC = () => {
 
   useEffect(() => {
     const fetchConsultants = async () => {
+      const userData = localStorage.getItem('userData') as any;
+      console.log('userData', userData);
+      const userId = JSON.parse(userData)?.id
       try {
         setLoading(true);
-        const response = await api.get('/api/consultants');
+        const response = await api.get(`/api/consultants/user/${userId}`);
+        if(response.data?.success === false) {
+          // throw new Error(response.data?.message || 'Failed to fetch consultants');
+          setError(response.data?.message || 'Failed to fetch consultants');
+        }
         setConsultants(response.data.data);
         setLoading(false);
-      } catch (err) {
+      } catch (err:any) {
         console.error('Error fetching consultants:', err);
-        setError('Failed to load consultants. Please try again later.');
+        // setError(err);
         setLoading(false);
       }
     };

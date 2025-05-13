@@ -2,7 +2,11 @@ import prisma from '../config/prisma.js';
 import { parseIsoProjectExcel } from '../utils/excelParser.js';
 
 export const importTasksFromExcel = async (req, res) => {
+
+
+
   try {
+
     // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({
@@ -12,7 +16,7 @@ export const importTasksFromExcel = async (req, res) => {
     }
 
     // Check if projectId was provided
-    const { projectId } = req.body;
+    const { projectId , userId} = req.body;
     if (!projectId) {
       return res.status(400).json({
         success: false,
@@ -69,7 +73,7 @@ export const importTasksFromExcel = async (req, res) => {
                     startDate: task.week ? new Date() : null, // You may want to parse week into a proper date
                     dueDate: null, // Set if available in your data
                     projectId,
-                    createdById: req.user?.id // Be sure req.user is available
+                    createdById: req.user?.id  || userId// Be sure req.user is available
                   }))
                 }
               }))

@@ -250,79 +250,102 @@ const ClientOnboarding: React.FC = () => {
       };
       
       console.log("Creating project with payload:", projectPayload);
-      
       const projectResponse = await api.post('/api/projects', projectPayload);
-      const projectId = projectResponse.data.data.id;
       
-      console.log("Created project with ID:", projectId);
-      setProcessingStatus("Project created successfully! Searching for document templates...");
-      
-      // Add 3 second delay before fetching document templates
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Step 3: Get document templates for the selected service
-      setProcessingStatus("Finding suitable templates for your project...");
-
-      try {
-        const documentsResponse = await api.get(`/api/documents/by-service/${selectedService}`);
-        const documents = documentsResponse.data;
-        
-        console.log("Found documents for service:", documents.length);
-        
-        // Find any Excel spreadsheet document for this service type
-        const templateDoc = documents.find((doc: any) => 
-          (doc.fileType && (
-            doc.fileType.includes("spreadsheet") || 
-            doc.fileType.includes("xlsx")
-          )) ||
-          (doc.title && (
-            doc.title.toLowerCase().includes("plan") ||
-            doc.title.toLowerCase().includes("format")
-          ))
-        );
-        
-        // Step 4: If we found a suitable document, download and import it
-        if (templateDoc && templateDoc.fileUrl) {
-          setProcessingStatus(`Template found: "${templateDoc.title}". Preparing to import tasks...`);
-          console.log("Using template document:", templateDoc.title);
-          
-          // Add 3 second delay before importing tasks
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Download the template file
-          const templateFile = await downloadFile(templateDoc.fileUrl);
-          
-          if (templateFile) {
-            setProcessingStatus("Importing tasks from template...");
-            
-            // Create FormData for file upload
-            const formData = new FormData();
-            formData.append('file', templateFile);
-            formData.append('projectId', projectId);
-            formData.append('userId', userId);
-            
-            console.log("Importing tasks from template for project:", projectId);
-            
-            // Import tasks from the template
-            await api.post('/api/tasks/import', formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data'
-              }
-            });
-            
-            setProcessingStatus("Tasks imported successfully! Your project is ready.");
-          } else {
-            console.error("Failed to download template file");
-            setProcessingStatus("Could not download template file. Project created without tasks.");
-          }
-        } else {
-          console.log("No suitable template document found");
-          setProcessingStatus("No task template found. Project created without predefined tasks.");
+      // Extract project ID from response, ensuring we handle different response formats
+      let projectId;
+      if (projectResponse && projectResponse.data) {
+        // Check common response patterns
+        if (projectResponse.data.id) {
+          projectId = projectResponse.data.id;
+        } else if (projectResponse.data.data && projectResponse.data.data.id) {
+          projectId = projectResponse.data.data.id;
+        } else if (projectResponse.data.project && projectResponse.data.project.id) {
+          projectId = projectResponse.data.project.id;
         }
-      } catch (docError) {
-        console.error("Error setting up project documents:", docError);
-        setProcessingStatus("Project created, but couldn't set up document templates.");
-        // Continue with account creation even if document setup fails
+      }
+      
+      if (!projectId) {
+        console.error("Failed to extract project ID from response:", projectResponse);
+        setProcessingStatus("Project created, but couldn't extract project ID for task import.");
+      } else {
+        console.log("Created project with ID:", projectId);
+        setProcessingStatus("Project created successfully! Searching for document templates...");
+      
+        // Add 3 second delay before fetching document templates
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Step 3: Get document templates for the selected service
+        setProcessingStatus("Finding suitable templates for your project...");
+
+        try {
+          const documentsResponse = await api.get(`/api/documents/by-service/${selectedService}`);
+          const documents = documentsResponse.data;
+          
+          console.log("Found documents for service:", documents.length);
+          
+          // Find any Excel spreadsheet document for this service type
+          const templateDoc = documents.find((doc: any) => 
+            (doc.fileType && (
+              doc.fileType.includes("spreadsheet") || 
+              doc.fileType.includes("xlsx")
+            )) ||
+            (doc.title && (
+              doc.title.toLowerCase().includes("plan") ||
+              doc.title.toLowerCase().includes("format")
+            ))
+          );
+          
+          // Step 4: If we found a suitable document, download and import it
+          if (templateDoc && templateDoc.fileUrl) {
+            setProcessingStatus(`Template found: "${templateDoc.title}". Preparing to import tasks...`);
+            console.log("Using template document:", templateDoc.title);
+            
+            // Add 3 second delay before importing tasks
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Download the template file
+            const templateFile = await downloadFile(templateDoc.fileUrl);
+            
+            if (templateFile) {
+              setProcessingStatus("Importing tasks from template...");
+              
+              // Create FormData for file upload
+              const formData = new FormData();
+              formData.append('file', templateFile);
+              
+              // Make sure projectId is properly formatted and not null/undefined
+              if (projectId) {
+                // Convert to string if it's not already (FormData values must be strings or Blobs)
+                formData.append('projectId', String(projectId));
+                
+                console.log("Importing tasks from template for project:", projectId);
+                
+                // Import tasks from the template
+                await api.post('/api/tasks/import', formData, {
+                  headers: {
+                    'Content-Type': 'multipart/form-data'
+                  }
+                });
+                
+                setProcessingStatus("Tasks imported successfully! Your project is ready.");
+              } else {
+                console.error("Project ID is missing, cannot import tasks");
+                setProcessingStatus("Project created, but couldn't import tasks due to missing project ID.");
+              }
+            } else {
+              console.error("Failed to download template file");
+              setProcessingStatus("Could not download template file. Project created without tasks.");
+            }
+          } else {
+            console.log("No suitable template document found");
+            setProcessingStatus("No task template found. Project created without predefined tasks.");
+          }
+        } catch (docError) {
+          console.error("Error setting up project documents:", docError);
+          setProcessingStatus("Project created, but couldn't set up document templates.");
+          // Continue with account creation even if document setup fails
+        }
       }
 
       // Final success message and slight delay before success toast

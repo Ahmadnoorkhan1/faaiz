@@ -11,12 +11,13 @@ import {
 const router = express.Router();
 
 // All routes require authentication
-router.use(authenticateToken);
 
 // Project routes
 router.route('/')
-  .get(getProjects)
-  .post(createProject);
+.get(getProjects)
+.post(createProject);
+
+router.use(authenticateToken);
 
 router.route('/:id')
   .get(getProjectById)

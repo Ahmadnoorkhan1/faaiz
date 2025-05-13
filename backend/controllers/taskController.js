@@ -3,7 +3,59 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const getAllTasks = async (req, res) => {
   try {
+    const { userId, projectId, consultantId, status, priority, phase } = req.query;
+    
+    // Build filter object
+    const filter = {};
+    
+    // If projectId is provided, filter by project
+    if (projectId) filter.projectId = projectId;
+    
+    // If status is provided, filter by status
+    if (status) filter.status = status;
+    
+    // If priority is provided, filter by priority
+    if (priority) filter.priority = priority;
+    
+    // User-based filtering
+    if (userId) {
+      // Check user role first
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true }
+      });
+      
+      // If user is not an admin, apply user-specific filtering
+      if (user && user.role !== 'ADMIN') {
+        // For consultants: show tasks assigned to them
+        // For clients: show tasks from their projects
+        if (user.role === 'CONSULTANT') {
+          filter.assigneeId = userId;
+        } else if (user.role === 'CLIENT') {
+          filter.project = {
+            clientId: userId
+          };
+        }
+      }
+    } else if (consultantId) {
+      // If a specific consultant filter was requested
+      filter.assigneeId = consultantId;
+    }
+    
+    // Add phase filtering if requested
+    if (phase) {
+      filter.subPhase = {
+        phase: {
+          title: {
+            contains: phase,
+            mode: 'insensitive'
+          }
+        }
+      };
+    }
+    
     const tasks = await prisma.task.findMany({
+      where: filter,
       include: {
         project: {
           select: {
@@ -29,6 +81,10 @@ export const getAllTasks = async (req, res) => {
           },
         },
       },
+      orderBy: [
+        { priority: 'desc' },
+        { dueDate: 'asc' }
+      ],
     });
 
     // Transform data to match frontend expectations

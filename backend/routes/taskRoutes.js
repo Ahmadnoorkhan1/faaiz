@@ -21,6 +21,7 @@ const upload = multer({
 });
 
 // Public routes (if any)
+router.post('/import', upload.single('file'), importTasksFromExcel);
 
 // Protected routes
 router.use(authenticateToken);
@@ -38,7 +39,5 @@ router.route('/:id')
 // Get tasks by project
 router.get('/project/:projectId', getTasksByProject);
 
-// Import tasks from Excel file
-router.post('/import', upload.single('file'), importTasksFromExcel);
 
 export default router;
