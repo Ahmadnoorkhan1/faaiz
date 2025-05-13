@@ -176,6 +176,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
     ? menuItems.filter(item => item.allowedRoles.includes(userData.role))
     : [];
 
+    console.log(userData, ' This is the user data');
+
   if (isLoading) {
     return (
       <div

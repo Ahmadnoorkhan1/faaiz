@@ -39,7 +39,7 @@ const Login: React.FC = () => {
     try {
       setLoading(true);
       await login(data.email, data.password);
-      navigate(from, { replace: true });
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error('Login error:', error);
     } finally {

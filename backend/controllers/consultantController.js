@@ -389,7 +389,7 @@ export const signNDA = async (req, res) => {
 
     // Check if consultant exists
     const consultant = await prisma.consultantProfile.findUnique({ 
-      where: { id },
+      where: { userId:id },
       include: { user: { select: { id: true, email: true } } }
     });
     
@@ -600,7 +600,7 @@ export const getNDAStatus = async (req, res) => {
     
     // Check if consultant exists
     const consultant = await prisma.consultantProfile.findUnique({ 
-      where: { id },
+      where: { userId:id },
       select: {
         ndaSigned: true,
         ndaSignatureDate: true,
