@@ -4,6 +4,7 @@ import ProjectProposalUpload from './components/ProjectProposalUpload';
 import ProjectPlanUpload from './components/ProjectPlanUpload';
 import toast, { Toaster } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import FeedbackSystem from './components/FeedbackSystem';
 
 interface ConfigItem {
   id: string;
@@ -534,107 +535,7 @@ const Configurations: React.FC = () => {
       )}
 
       {activeTab === 'Feedback' && (
-        <div className="space-y-6">
-          {/* Consultant Selection */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-200">Feedback System</h2>
-            <select
-              value={selectedConsultant}
-              onChange={(e) => setSelectedConsultant(e.target.value)}
-              className="bg-[#1a1f2b] text-gray-200 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="" disabled>Select Consultant</option>
-              {DUMMY_CONSULTANTS.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category Selection */}
-          <div className="bg-[#242935] rounded-xl p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-gray-200 mb-4">Assessment Category</h3>
-            <div className="flex flex-wrap gap-2">
-              {FEEDBACK_CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategoryFB(cat)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    selectedCategoryFB === cat
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-[#1a1f2b] text-gray-400 hover:bg-[#2e3446]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Criteria Table */}
-          <div className="bg-[#242935] rounded-xl p-6 shadow-lg overflow-x-auto">
-            <table className="min-w-full text-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left">Evaluation Criteria</th>
-                  <th className="px-4 py-2 text-left">Score (1-5)</th>
-                  <th className="px-4 py-2 text-left">Comments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(CRITERIA_BY_CATEGORY[selectedCategoryFB] || []).map(criteria => (
-                  <tr key={criteria} className="border-t border-gray-600">
-                    <td className="px-4 py-2">{criteria}</td>
-                    <td className="px-4 py-2">
-                      <select
-                        value={feedbackData[criteria]?.score || ''}
-                        onChange={(e) =>
-                          setFeedbackData({
-                            ...feedbackData,
-                            [criteria]: {
-                              ...feedbackData[criteria],
-                              score: Number(e.target.value)
-                            }
-                          })
-                        }
-                        className="bg-[#1a1f2b] text-gray-200 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">-</option>
-                        {[1,2,3,4,5].map(num => (
-                          <option key={num} value={num}>{num}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-2">
-                      <textarea
-                        value={feedbackData[criteria]?.comment || ''}
-                        onChange={(e) =>
-                          setFeedbackData({
-                            ...feedbackData,
-                            [criteria]: {
-                              ...feedbackData[criteria],
-                              comment: e.target.value
-                            }
-                          })
-                        }
-                        className="w-full bg-[#1a1f2b] text-gray-200 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={() => alert('Feedback saved')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Save Feedback
-            </button>
-          </div>
-        </div>
+       <FeedbackSystem/>
       )}
     </div>
   );

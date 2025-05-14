@@ -204,6 +204,8 @@ export const documentController = {
   async getDocumentsByService(req, res) {
   try {
     const { serviceType } = req.params;
+
+    console.log(serviceType)
     
     // Validate serviceType
     if (!Object.values(ServiceType).includes(serviceType)) {

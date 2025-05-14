@@ -19,6 +19,15 @@ enum OnboardingStatus {
   COMPLETED
 }
 
+// Add this enum after other enums in schema.prisma
+enum ConsultantStatus {
+  PENDING_REVIEW
+  INTERVIEW_INVITED
+  INTERVIEW_SCHEDULED
+  REJECTED
+  APPROVED
+}
+
 // Reusable enum for services offered/requested
 enum ServiceType {
   ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM
@@ -188,6 +197,11 @@ model ConsultantProfile {
 
   profileCompleted Boolean          @default(false)
   onboardingStatus OnboardingStatus @default(NOT_STARTED)
+  status             ConsultantStatus @default(PENDING_REVIEW)
+  interviewScore     Float?           // Optional score from 0-5
+  reviewNotes        String?          // Admin notes about the consultant
+  interviewDate      DateTime?        // When interview is scheduled
+  isAllowedToLogin  Boolean  @default(false) // New column
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

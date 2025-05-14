@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
     };
 
     checkNdaStatus();
-  }, [user, user]);
+  }, [user]);
 
   const stats = [
     {
@@ -95,6 +95,7 @@ const Dashboard: React.FC = () => {
             </svg>
           </div>
           <div className="ml-3">
+           
             <p className="text-sm text-yellow-500 font-medium">
               You must sign the Non-Disclosure Agreement before proceeding with consulting work.
               <Link to="/profile" className="ml-2 font-bold underline">

@@ -57,51 +57,71 @@ export const authController = {
   },
 
   async login(req, res) {
-    try {
-      const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-      // Find user
-      const user = await prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          email: true,
-          password: true,
-          role: true,
-        },
+    // Find user with profile data
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        role: true,
+        consultantProfile: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid credentials' 
       });
-
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      // Check password
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = user;
-
-      res.json({
-        success: true,
-        data: {
-          token,
-          user: userWithoutPassword,
-        },
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Failed to login' });
     }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid credentials' 
+      });
+    }
+
+    // If the user is a consultant, check if they are allowed to login
+    if (user.role === 'CONSULTANT' && user.consultantProfile) {
+      if (!user.consultantProfile.isAllowedToLogin) {
+        return res.status(403).json({
+          success: false,
+          error: 'Your account is pending approval. You will be notified when your account is activated.'
+        });
+      }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Remove password and sensitive data from response
+    const { password: _, consultantProfile, ...userDataForResponse } = user;
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        user: userDataForResponse,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to login' 
+    });
+  }
   },
 
   async getMe(req, res) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../../utils/ProfileContext';
 import { get, post } from '../../service/apiService';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../utils/AuthContext';
 
 // NDA Content Component
 const NDAContent = ({ consultantName, consultantEmail, onClose, onSign }: { 
@@ -255,6 +256,8 @@ const Profile = () => {
   const [ndaLoading, setNdaLoading] = useState(false);
   const [signingNDA, setSigningNDA] = useState(false);
 
+  const { user} = useAuth();
+
   // Check NDA status for consultants
   useEffect(() => {
     console.log(signingNDA)
@@ -263,7 +266,7 @@ const Profile = () => {
       if (userType === 'consultant' && profileData?.id) {
         setNdaLoading(true);
         try {
-          const response = await get<{ data: { ndaSigned: boolean, ndaSignatureDate?: string, ndaPdfUrl?: string } }>(`/api/consultants/${profileData.id}/nda-status`);
+          const response = await get<{ data: { ndaSigned: boolean, ndaSignatureDate?: string, ndaPdfUrl?: string } }>(`/api/consultants/${user?.id}/nda-status`);
           setNdaStatus(response.data);
         } catch (error) {
           console.error('Error checking NDA status:', error);

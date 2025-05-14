@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
+import { sendInterviewInvitation, sendConsultantApprovalEmail, sendConsultantRejectionEmail } from '../utils/emailService.js';
 
 const prisma = new PrismaClient();
 
@@ -189,6 +190,8 @@ export const createConsultantProfile = async (req, res, next) => {
           cvUrl: cvUrl || null,
           profileCompleted: false,
           onboardingStatus: 'NOT_STARTED',
+          isAllowedToLogin: false, // Set to false by default
+
         },
         include: {
           user: {
@@ -431,7 +434,7 @@ export const signNDA = async (req, res) => {
 
     // Check if consultant exists
     const consultant = await prisma.consultantProfile.findUnique({ 
-      where: { id },
+      where: { userId: id },
       include: { user: { select: { id: true, email: true } } }
     });
     
@@ -495,7 +498,7 @@ export const signNDA = async (req, res) => {
     
     // Update the consultant profile
     const updatedConsultant = await prisma.consultantProfile.update({
-      where: { id },
+      where: { userId: id },
       data: {
         ndaSigned: true,
         ndaSignatureDate: new Date(),
@@ -686,6 +689,175 @@ export const getNDAStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error checking NDA status'
+    });
+  }
+};
+
+/**
+ * Invite consultant for interview
+ * @route POST /api/consultants/:id/invite
+ * @access Private/Admin
+ */
+export const inviteConsultantForInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { interviewLink, scheduledDate } = req.body;
+    
+    // Find the consultant
+    const consultant = await prisma.consultantProfile.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, email: true } } }
+    });
+    
+    if (!consultant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Consultant profile not found'
+      });
+    }
+    
+    // Send invitation email
+    await sendInterviewInvitation(consultant, interviewLink);
+    
+    // Update consultant status
+    const updatedConsultant = await prisma.consultantProfile.update({
+      where: { id },
+      data: { 
+        status: scheduledDate ? 'INTERVIEW_SCHEDULED' : 'INTERVIEW_INVITED',
+        interviewDate: scheduledDate ? new Date(scheduledDate) : null
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Interview invitation sent successfully',
+      data: updatedConsultant
+    });
+  } catch (error) {
+    console.error('Interview invitation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error sending interview invitation',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Review consultant after interview
+ * @route POST /api/consultants/:id/review
+ * @access Private/Admin
+ */
+export const reviewConsultant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { score, notes } = req.body;
+    
+    if (score === undefined || score === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Interview score is required'
+      });
+    }
+    
+    // Score should be between 0 and 5
+    const validScore = Math.max(0, Math.min(5, parseFloat(score)));
+    
+    // Find the consultant
+    const consultant = await prisma.consultantProfile.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, email: true } } }
+    });
+    
+    if (!consultant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Consultant profile not found'
+      });
+    }
+    
+    // Determine status based on score
+    const isApproved = validScore >= 3;
+    const newStatus = isApproved ? 'APPROVED' : 'REJECTED';
+    
+    // Update consultant data
+    const updatedConsultant = await prisma.consultantProfile.update({
+      where: { id },
+      data: {
+        interviewScore: validScore,
+        reviewNotes: notes || null,
+        status: newStatus,
+        isAllowedToLogin: isApproved // Only allow login if approved
+      }
+    });
+    
+    // Send appropriate email based on decision
+    if (isApproved) {
+      await sendConsultantApprovalEmail(consultant);
+    } else {
+      await sendConsultantRejectionEmail(consultant, notes);
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: `Consultant ${isApproved ? 'approved' : 'rejected'}`,
+      data: updatedConsultant
+    });
+  } catch (error) {
+    console.error('Consultant review error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error reviewing consultant',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get consultants by status
+ * @route GET /api/consultants/by-status/:status
+ * @access Private/Admin
+ */
+export const getConsultantsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+    
+    // Validate status
+    const validStatuses = ['PENDING_REVIEW', 'INTERVIEW_INVITED', 'INTERVIEW_SCHEDULED', 'REJECTED', 'APPROVED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status',
+        validOptions: validStatuses
+      });
+    }
+    
+    // Get consultants with the requested status
+    const consultants = await prisma.consultantProfile.findMany({
+      where: { status },
+      include: { 
+        user: { 
+          select: { 
+            id: true, 
+            email: true, 
+            role: true 
+          } 
+        } 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    res.status(200).json({
+      success: true,
+      count: consultants.length,
+      data: consultants
+    });
+  } catch (error) {
+    console.error('Get consultants by status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting consultants by status',
+      error: error.message
     });
   }
 };
