@@ -26,14 +26,14 @@ const AccountInfo: React.FC = () => {
         required
         placeholder="Create a secure password"
       />
-      <Input
+      {/* <Input
         label="Name"
         name="name"
         register={register}
         error={errors.name}
         required
         placeholder="Enter your full name"
-      />
+      /> */}
     </div>
   );
 };

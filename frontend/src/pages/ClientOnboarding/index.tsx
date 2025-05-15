@@ -1,42 +1,29 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm, FormProvider, SubmitHandler } from "react-hook-form";
+import { useForm, FormProvider, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
 import CardLayout from "../../layouts/CardLayout";
 import Stepper from "../../components/Stepper";
 import api from "../../service/apiService";
 import { ClientFormData, clientSchema } from "../../utils/schemas/clientSchema";
-import axios from "axios";
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 // Import step components
 import AccountInfo from "./components/AccountInfo";
 import BasicInfo from "./components/BasicInfo";
-import PersonalInfo from "./components/PersonalInfo";
-import DiscoveryMethod from "./components/DiscoveryMethod";
-import ProposalGeneration from "./components/ProposalGeneration";
-import InterviewSchedule from "./components/InterviewSchedule";
-import LegalTerms from "./components/LegalTerms";
 
+// Streamlined step order: Services first, then merged Account & Personal Info
 const steps = [
-  { title: "Account", description: "Create Account" },
   { title: "Service Selection", description: "Services" },
-  { title: "Personal Info", description: "Your Details" },
-  { title: "Discovery", description: "Call or Form" },
-  { title: 'Proposal', description: 'Generating...' },
-  // { title: 'Interview', description: 'Schedule (Optional)' },
-  { title: "Legal", description: "Final Steps" },
+  { title: "Account & Personal", description: "Your Details" },
 ];
 
-// Fields to watch per step to prevent unnecessary validations
+// Fields to validate for each step
 const stepFields = {
-  0: ["email", "password", "name"],
-  1: ["requestedServices", "otherDetails"],
-  2: ["fullName", "phoneNumber", "organization"],
-  3: ["discoveryMethod"],
-  // 4: [],
-  // 5: [],
-  6: ["termsAccepted"],
+  0: ["requestedServices", "otherDetails"],
+  1: ["email", "password", "fullName", "organization", "phoneNumber", "additionalContact"],
 };
 
 // Helper to format service name for readability
@@ -51,7 +38,6 @@ const formatServiceName = (service: string): string => {
 const ClientOnboarding: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [isGeneratingProposal, setIsGeneratingProposal] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>("Creating account...");
@@ -64,14 +50,13 @@ const ClientOnboarding: React.FC = () => {
     defaultValues: {
       email: "",
       password: "",
-      name: "",
       requestedServices: [],
       otherDetails: "",
       fullName: "",
       phoneNumber: "",
       organization: "",
       additionalContact: "",
-      discoveryMethod: "call",
+      discoveryMethod: "call", // Default value even though step is removed
       scopingDetails: {},
       interviewDate: "",
       interviewTime: "",
@@ -83,8 +68,9 @@ const ClientOnboarding: React.FC = () => {
     handleSubmit,
     watch,
     trigger,
+    control,
     getValues,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = methods;
 
   // Watch all fields for the current step
@@ -92,10 +78,10 @@ const ClientOnboarding: React.FC = () => {
     stepFields[currentStep as keyof typeof stepFields] || [];
   const watchedStepFields = watch(currentStepFields as any);
 
-  // Specifically watch requestedServices for Step 1
+  // Specifically watch requestedServices for Step 0
   const watchedServices = watch("requestedServices");
 
-  // Improved validation function
+  // Validation function for steps
   const validateCurrentStep = useCallback(
     async (showToast = true): Promise<boolean> => {
       if (isValidating) return false;
@@ -108,8 +94,8 @@ const ClientOnboarding: React.FC = () => {
           ...(stepFields[currentStep as keyof typeof stepFields] || []),
         ];
 
-        // Special case for Step 1 - check if any services are selected
-        if (currentStep === 1) {
+        // Special case for Step 0 (Service Selection) - check if any services are selected
+        if (currentStep === 0) {
           const services = getValues("requestedServices");
 
           if (services.length === 0) {
@@ -130,10 +116,7 @@ const ClientOnboarding: React.FC = () => {
           }
         }
 
-        // Skip validation for proposal generation and optional steps
-        if (currentStep === 4 || currentStep === 5) {
-          isValid = true;
-        } else if (fieldsToValidate.length > 0) {
+        if (fieldsToValidate.length > 0) {
           // Trigger validation for all fields in this step
           isValid = await trigger(fieldsToValidate as any, {
             shouldFocus: true,
@@ -163,171 +146,49 @@ const ClientOnboarding: React.FC = () => {
     [currentStep, getValues, trigger, isValidating]
   );
 
-  // Helper function to download a file from a URL
-  const downloadFile = async (url: string): Promise<File | null> => {
-    try {
-      // Get the file name from URL
-      const fileName = url.split('/').pop() || 'template.xlsx';
-      
-      // Fetch the file
-      const response = await axios.get(url, { responseType: 'blob' });
-      
-      // Create a File object
-      const file = new File([response.data], fileName, {
-        type: response.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      
-      return file;
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      return null;
-    }
-  };
-
   const onSubmit: SubmitHandler<ClientFormData> = async (data) => {
     try {
       setLoading(true);
       setProcessingStatus("Creating account...");
+      
+      console.log("Submitting form data:", data);
 
-      // Step 1: Create new client profile
+      // Create new client profile with all payload data
       const clientResponse = await api.post("/api/clients", {
         // User fields
         email: data.email,
         password: data.password,
         
         // ClientProfile fields
-        fullName: data.name,
+        fullName: data.fullName,
         phoneNumber: data.phoneNumber,
         organization: data.organization,
         additionalContact: data.additionalContact || null,
         
-        // Make sure requestedServices is properly formatted as ServiceType[] enum
+        // Service information
         requestedServices: data.requestedServices,
         otherDetails: data.otherDetails || null,
         
-        // Discovery
-        discoveryMethod: data.discoveryMethod || null,
-        scopingDetails: data.scopingDetails || {},
+        // Include discovery data with default values
+        discoveryMethod: "call",
+        scopingDetails: {},
         
-        // Interview
-        interviewDate: data.interviewDate || null,
-        interviewTime: data.interviewTime || null,
-        
-        // Legal
-        termsAccepted: data.termsAccepted,
-        
-        // Status fields
+        // Status fields - set as completed
         currentStep: 0,
-        onboardingStatus: "COMPLETED", // Set as completed since we're handling everything
+        onboardingStatus: "COMPLETED",
       });
 
-      // Extract client data from response - FIXED: Correctly access the clientProfile.id
+      // Extract client data from response
       const responseData = clientResponse.data.data;
       const clientId = responseData.clientProfile.id;
       const userId = responseData.user.id;
       
       console.log("Created client with ID:", clientId);
-      setProcessingStatus("Account created successfully! Preparing project setup...");
+      setProcessingStatus("Account created successfully!");
       
-      // Add 3 second delay before project creation
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Get the selected service
-      const selectedService = data.requestedServices[0]; // First service in the array
-
-      // Step 2: Create a project for the client
-      setProcessingStatus("Creating project...");
-      
-      const projectPayload = {
-        name: `${data.organization} - ${formatServiceName(selectedService)}`,
-        description: `${formatServiceName(selectedService)} implementation for ${data.organization}`,
-        status: "ACTIVE",
-        clientId: clientId, // Using the correct clientId from clientProfile
-        userId: userId, // Using the correct userId from clientProfile
-        // Let consultantId be assigned by admin later
-        startDate: new Date().toISOString().split('T')[0], // Today
-        endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0], // 6 months from now
-      };
-      
-      console.log("Creating project with payload:", projectPayload);
-      
-      const projectResponse = await api.post('/api/projects', projectPayload);
-      const projectId = projectResponse.data.data.id;
-      
-      console.log("Created project with ID:", projectId);
-      setProcessingStatus("Project created successfully! Searching for document templates...");
-      
-      // Add 3 second delay before fetching document templates
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Step 3: Get document templates for the selected service
-      setProcessingStatus("Finding suitable templates for your project...");
-
-      try {
-        const documentsResponse = await api.get(`/api/documents/by-service/${selectedService}`);
-        const documents = documentsResponse.data;
-        
-        console.log("Found documents for service:", documents.length);
-        
-        // Find any Excel spreadsheet document for this service type
-        const templateDoc = documents.find((doc: any) => 
-          (doc.fileType && (
-            doc.fileType.includes("spreadsheet") || 
-            doc.fileType.includes("xlsx")
-          )) ||
-          (doc.title && (
-            doc.title.toLowerCase().includes("plan") ||
-            doc.title.toLowerCase().includes("format")
-          ))
-        );
-        
-        // Step 4: If we found a suitable document, download and import it
-        if (templateDoc && templateDoc.fileUrl) {
-          setProcessingStatus(`Template found: "${templateDoc.title}". Preparing to import tasks...`);
-          console.log("Using template document:", templateDoc.title);
-          
-          // Add 3 second delay before importing tasks
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Download the template file
-          const templateFile = await downloadFile(templateDoc.fileUrl);
-          
-          if (templateFile) {
-            setProcessingStatus("Importing tasks from template...");
-            
-            // Create FormData for file upload
-            const formData = new FormData();
-            formData.append('file', templateFile);
-            formData.append('projectId', projectId);
-            formData.append('userId', userId);
-            
-            console.log("Importing tasks from template for project:", projectId);
-            
-            // Import tasks from the template
-            await api.post('/api/tasks/import', formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data'
-              }
-            });
-            
-            setProcessingStatus("Tasks imported successfully! Your project is ready.");
-          } else {
-            console.error("Failed to download template file");
-            setProcessingStatus("Could not download template file. Project created without tasks.");
-          }
-        } else {
-          console.log("No suitable template document found");
-          setProcessingStatus("No task template found. Project created without predefined tasks.");
-        }
-      } catch (docError) {
-        console.error("Error setting up project documents:", docError);
-        setProcessingStatus("Project created, but couldn't set up document templates.");
-        // Continue with account creation even if document setup fails
-      }
-
-      // Final success message and slight delay before success toast
+      // Add delay before showing success message
       await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Account created and project setup completed successfully!");
+      toast.success("Account created successfully!");
 
       // Redirect to login page
       setTimeout(() => {
@@ -356,27 +217,24 @@ const ClientOnboarding: React.FC = () => {
     }
   };
 
-  // Handle next button click
+  // Modified handle next button to properly submit form
   const handleNext = useCallback(async () => {
-    if (isValidating || isGeneratingProposal) return;
+    if (isValidating) return;
 
     const isStepValid = await validateCurrentStep(true);
 
     if (isStepValid) {
-      if (currentStep === 3) {
-        setIsGeneratingProposal(true);
-        // Simulate proposal generation
-        setTimeout(() => {
-          setIsGeneratingProposal(false);
-          setCurrentStep((prev) => prev + 1);
-          // Mark step as validated
-          setStepValidated((prev) => ({ ...prev, [currentStep + 1]: true }));
-        }, 2000);
+      // If current step is the last step (Account & Personal), submit the form
+      if (currentStep === 1) {
+        console.log("Attempting to submit form...");
+        // Directly call the onSubmit function with current form values
+        const formValues = getValues();
+        await onSubmit(formValues);
       } else {
         setCurrentStep((prev) => prev + 1);
       }
     }
-  }, [currentStep, isValidating, isGeneratingProposal, validateCurrentStep]);
+  }, [currentStep, isValidating, validateCurrentStep, getValues, onSubmit]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0 && !loading) {
@@ -384,26 +242,95 @@ const ClientOnboarding: React.FC = () => {
     }
   }, [currentStep, loading]);
 
+  // Render only the first two steps
   const renderStepComponent = useCallback(() => {
     switch (currentStep) {
       case 0:
-        return <AccountInfo />;
+        return <BasicInfo />; // Service Selection
       case 1:
-        return <BasicInfo />;
-      case 2:
-        return <PersonalInfo />;
-      case 3:
-        return <DiscoveryMethod />;
-      case 4:
-        return <ProposalGeneration />;
-      // case 5:
-      //   return <InterviewSchedule />;
-      case 5:
-        return <LegalTerms />;
+        // Combined Account & Personal Info step with custom Phone field
+        return (
+          <div className="space-y-6">
+            <AccountInfo />
+            <div className="space-y-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...methods.register("fullName")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your full name"
+                  />
+                  {errors.fullName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.fullName.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    name="phoneNumber"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInput
+                        {...field}
+                        country={'us'}
+                        inputClass="!w-full !h-10 !border-gray-300 !rounded-md"
+                        buttonClass="!border-gray-300"
+                        dropdownClass=""
+                        containerClass="!w-full"
+                        specialLabel=""
+                        inputProps={{
+                          required: true,
+                          className: '!w-full !h-10 border border-gray-300 !rounded-md ps-16'
+                        }}
+                      />
+                    )}
+                  />
+                  {errors.phoneNumber && (
+                    <p className="mt-1 text-sm text-red-500">{errors.phoneNumber.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Organization <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...methods.register("organization")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your organization name"
+                  />
+                  {errors.organization && (
+                    <p className="mt-1 text-sm text-red-500">{errors.organization.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Additional Contact Details
+                  </label>
+                  <input
+                    {...methods.register("additionalContact")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Any additional contact information"
+                  />
+                  {errors.additionalContact && (
+                    <p className="mt-1 text-sm text-red-500">{errors.additionalContact.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
-  }, [currentStep]);
+  }, [currentStep, control, errors, methods]);
 
   if (loading) {
     return (
@@ -430,7 +357,7 @@ const ClientOnboarding: React.FC = () => {
       <div className="relative z-10 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
         <CardLayout title="Client Onboarding">
           <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            <form className="space-y-8">
               <Stepper steps={steps} currentStep={currentStep} />
 
               <div className="mt-8 w-full min-h-[300px]">
@@ -441,50 +368,35 @@ const ClientOnboarding: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleBack}
-                  disabled={
-                    currentStep === 0 || loading || isGeneratingProposal
-                  }
+                  disabled={currentStep === 0 || loading}
                   className={`px-4 py-2 border rounded-md text-sm font-medium transition-colors
-    ${
-      currentStep === 0 || loading || isGeneratingProposal
-        ? "text-gray-300 border-gray-300 cursor-not-allowed"
-        : "text-gray-700 border-gray-300 bg-white hover:bg-gray-50"
-    }`}
+                    ${
+                      currentStep === 0 || loading
+                        ? "text-gray-300 border-gray-300 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 bg-white hover:bg-gray-50"
+                    }`}
                 >
                   Back
                 </button>
-                {currentStep === steps.length - 1 ? (
-                  <button
-                    type="submit"
-                    // disabled={}
-                    className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors
-                      ${
-                        loading || isValidating || !stepValidated[currentStep]
-                          ? "bg-[#003175] cursor-not-allowed"
-                          : "bg-[#0078D4] hover:bg-[#106EBE]"
-                      }`}
-                  >
-                    {loading ? "Submitting..." : "Create Account"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={isGeneratingProposal || loading || isValidating}
-                    className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors
-                      ${
-                        isGeneratingProposal || loading || isValidating
-                          ? "bg-[#003175] cursor-not-allowed"
-                          : "bg-[#0078D4] hover:bg-[#106EBE]"
-                      }`}
-                  >
-                    {isValidating
-                      ? "Validating..."
-                      : isGeneratingProposal
-                      ? "Generating..."
-                      : "Next"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={loading || isValidating}
+                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors
+                    ${
+                      loading || isValidating
+                        ? "bg-[#003175] cursor-not-allowed"
+                        : "bg-[#0078D4] hover:bg-[#106EBE]"
+                    }`}
+                >
+                  {isValidating
+                    ? "Validating..."
+                    : loading
+                    ? "Processing..."
+                    : currentStep === 1
+                    ? "Create Account"
+                    : "Next"}
+                </button>
               </div>
             </form>
           </FormProvider>

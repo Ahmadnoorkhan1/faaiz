@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middlewares/auth.js';
-import { getClients, createClient, getClientByUserId } from '../controllers/clientController.js';
+import { getClients, createClient, getClientByUserId, getClientsByStatus, inviteClientForDiscovery, updateDiscoveryStatus, updateClientScoping, updateClientTerms, rejectClient } from '../controllers/clientController.js';
 
 const router = express.Router();
 
@@ -13,7 +13,15 @@ router.use(authenticateToken);
 // Client routes that require authentication
 router.get('/', getClients);
 
-router.get('/user/:id',getClientByUserId)
+router.get('/user/:userId', getClientByUserId);
+
+// Admin routes for client onboarding process
+router.get('/by-status/:status', authenticateToken, getClientsByStatus);
+router.post('/:id/invite', authenticateToken, inviteClientForDiscovery);
+router.post('/:id/discovery-status', authenticateToken, updateDiscoveryStatus);
+router.post('/:id/scoping', authenticateToken, updateClientScoping);
+router.post('/:id/terms', authenticateToken, updateClientTerms);
+router.post('/:id/reject', authenticateToken, rejectClient);
 
 const clientRoutes = router;
 export default clientRoutes;

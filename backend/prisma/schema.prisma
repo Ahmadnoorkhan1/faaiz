@@ -14,9 +14,27 @@ enum UserRoleType {
 }
 
 enum OnboardingStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
+  // Initial states
+  PENDING_DISCOVERY   // Initial state when client/consultant is created
+  
+  // Discovery call states
+  DISCOVERY_INVITED   // Invited for discovery call
+  DISCOVERY_SCHEDULED // Discovery call scheduled
+  DISCOVERY_COMPLETED // Discovery call completed
+  
+  // Scoping states (for clients)
+  SCOPING_IN_PROGRESS // Admin adding scoping details
+  SCOPING_REVIEW      // Client reviewing scoping details
+  
+  // Terms and approval states
+  TERMS_PENDING       // Waiting for client to accept terms
+  ONBOARDED           // Fully onboarded and active
+  REJECTED            // Rejected after review/discovery
+  
+  // Legacy status values (keeping for compatibility)
+  NOT_STARTED         // Deprecated - use PENDING_DISCOVERY instead
+  IN_PROGRESS         // Deprecated - use more specific states
+  COMPLETED           // Deprecated - use ONBOARDED instead
 }
 
 // Add this enum after other enums in schema.prisma
@@ -151,19 +169,30 @@ model ClientProfile {
   requestedServices ServiceType[] @default([]) // replaces all the booleans
   otherDetails      String?
 
-  // Discovery
-  discoveryMethod String? // 'call' or 'form'
-  scopingDetails  Json?
+  // Discovery Call fields
+  isDiscoveryCallInvited Boolean   @default(false)
+  discoveryCallLink      String?
+  discoveryCallDate      DateTime?
+  discoveryCallStatus    String?   @default("not_started") // "not_started", "scheduled", "completed", "cancelled"
+  discoveryMethod        String?   // 'call' or 'form'
+  
+  // Admin review fields
+  adminReviewNotes       String?
+  rejectionReason        String?
+  
+  // Scoping details
+  scopingDetails         Json?
 
-  // Interview
-  interviewDate String?
-  interviewTime String?
+  // Interview - existing fields
+  interviewDate          String?
+  interviewTime          String?
 
   // Legal
-  termsAccepted Boolean @default(false)
+  termsAccepted          Boolean   @default(false)
 
-  currentStep      Int              @default(0)
-  onboardingStatus OnboardingStatus @default(NOT_STARTED)
+  // Status tracking
+  currentStep            Int               @default(0)
+  onboardingStatus       OnboardingStatus  @default(PENDING_DISCOVERY)  // Changed from NOT_STARTED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
