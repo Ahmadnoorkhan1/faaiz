@@ -201,3 +201,30 @@ export const getClients = async (req, res, next) => {
     next(error);
   }
 };
+
+
+export const getClientByUserId = async (req,res) => {
+  try {
+    const client = await prisma.clientProfile.findUnique({
+      where:{userId:id}
+    })
+
+    if(!client){
+      return res.status(404).json({
+        success:false,
+        message:"Client not found",
+      })
+    }
+
+    return res.status(200).json({
+        success:true,
+        message:"Client  found",
+        data:client
+      })
+  } catch (error) {
+    return res.status(500).json({
+      success:false,
+      message:error
+    })
+  }
+}

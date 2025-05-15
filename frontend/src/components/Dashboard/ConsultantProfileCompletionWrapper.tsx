@@ -22,7 +22,12 @@ const ConsultantProfileCompletionWrapper: React.FC = () => {
 
   // Check NDA status on component mount
   useEffect(() => {
-    checkNdaStatus();
+    if(user.role !== 'CLIENT'){
+      checkNdaStatus();
+    }
+    if(user.role === 'CLIENT'){
+      setLoading(false)
+    }
   }, []);
 
   // Check if the NDA is signed - using user.id for consistency with Profile page
@@ -44,10 +49,6 @@ const ConsultantProfileCompletionWrapper: React.FC = () => {
       });
 
 
-      console.log(user.role, "===============")
-      
-      
-      // If NDA is not signed, show the signing modal
       if (!data.ndaSigned && user.role === "CONSULTANT" ) {
         setShowNdaModal(true);
       }

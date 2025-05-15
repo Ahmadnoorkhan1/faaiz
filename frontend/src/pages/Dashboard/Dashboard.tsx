@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="space-y-6">
         {/* NDA Banner */}
-        {user.role === 'CONSULTANT' && !ndaLoading && ndaSigned === false && <NDABanner />}
+        {/* {user.role === 'CONSULTANT' && !ndaLoading && ndaSigned === false && <NDABanner />} */}
         
         <div className="flex items-center justify-between">
           <div>

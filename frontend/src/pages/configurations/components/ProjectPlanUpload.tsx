@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../service/apiService';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../utils/AuthContext';
 
 interface ConfigItem {
   id: string;
@@ -52,6 +53,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
   const [fetchingDocuments, setFetchingDocuments] = useState<boolean>(true);
   const [loadingServices, setLoadingServices] = useState<Record<string, boolean>>({});
   const [replacingServices, setReplacingServices] = useState<Record<string, boolean>>({});
+  const {user} = useAuth();
 
   useEffect(() => {
     const fetchServiceTypes = async () => {
@@ -145,7 +147,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
   };
 
   const getFileIcon = (fileType: string) => {
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) {
+    if(typeof(fileType)!=='string'){
+      return
+    }
+    if ((fileType.includes('spreadsheet') || fileType.includes('excel'))) {
       return (
         <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
@@ -193,9 +198,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
       formData.append('file', file);
       formData.append('serviceType', service);
       formData.append('category', category);
-      formData.append('documentType', 'PROPOSAL');
+      formData.append('documentType', 'ProjectPlan');
+      formData.append('userId',user.id);
       
-      const response = await api.post('/api/documents/upload', formData, {
+      const response = await api.post(`/api/documents/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -271,8 +271,8 @@ model Phase {
   id          String     @id @default(uuid())
   title       String
   order       Int
-  projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   subPhases   SubPhase[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -419,8 +419,8 @@ model Event {
   isAllDay    Boolean  @default(false)
 
   // Relations
-  project   Project?        @relation(fields: [projectId], references: [id])
-  projectId String?
+  project   Project        @relation(fields: [projectId], references: [id])
+  projectId String
   attendees EventAttendee[]
 
   createdAt DateTime @default(now())

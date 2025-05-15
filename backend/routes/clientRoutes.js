@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middlewares/auth.js';
-import { getClients, createClient } from '../controllers/clientController.js';
+import { getClients, createClient, getClientByUserId } from '../controllers/clientController.js';
 
 const router = express.Router();
 
@@ -12,6 +12,8 @@ router.use(authenticateToken);
 
 // Client routes that require authentication
 router.get('/', getClients);
+
+router.get('/user/:id',getClientByUserId)
 
 const clientRoutes = router;
 export default clientRoutes;

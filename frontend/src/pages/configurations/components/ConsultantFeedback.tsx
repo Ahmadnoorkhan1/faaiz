@@ -166,7 +166,7 @@ const ConsultantFeedback: React.FC = () => {
             email: consultant.email,
             status: consultant.status,
             isAllowedToLogin: consultant.isAllowedToLogin
-          }))            .filter(consultant => consultant.status === 'INTERVIEW_SCHEDULED');
+          }))            .filter((consultant:any) => consultant.status === 'INTERVIEW_SCHEDULED');
 
           // Then filter the mapped consultants who need review
           // .filter(consultant => 
