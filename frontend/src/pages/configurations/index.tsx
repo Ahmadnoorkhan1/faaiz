@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../service/apiService';
-import ProjectProposalUpload from './components/ProjectProposalUpload';
-import ProjectPlanUpload from './components/ProjectPlanUpload';
 import toast, { Toaster } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
 import FeedbackSystem from './components/FeedbackSystem';
+import ConfigurationSystem from './components/ConfigurationSystem';
 
 interface ConfigItem {
   id: string;
@@ -35,97 +33,8 @@ const FEEDBACK_CATEGORIES = [
   'Red Flags'
 ];
 
-// Criteria grouped by category
-const CRITERIA_BY_CATEGORY: Record<string, string[]> = {
-  'Job Fit / Technical Competence': [
-    'Relevant experience',
-    'Technical skills or certifications',
-    'Problem-solving ability',
-    'Knowledge of tools/technologies',
-    'Ability to learn quickly'
-  ],
-  'Behavioral & Soft Skills': [
-    'Communication skills',
-    'Teamwork and collaboration',
-    'Conflict resolution',
-    'Work ethic and integrity',
-    'Time management and organization',
-    'Emotional intelligence (EQ)'
-  ],
-  'Cultural Fit': [
-    'Alignment with company values',
-    'Attitude and mindset',
-    'Professionalism and demeanor',
-    'Work style compatibility'
-  ],
-  'Problem Solving & Critical Thinking': [
-    'Analytical thinking',
-    'Decision-making under pressure',
-    'Creative approaches to challenges'
-  ],
-  'Motivation & Career Goals': [
-    'Why they want the job',
-    'Career aspiration alignment',
-    'Long-term potential'
-  ],
-  'Past Performance': [
-    'Achievements in past roles',
-    'Promotion or growth history',
-    'References and endorsements',
-    'Employment gap analysis'
-  ],
-  'Leadership & Initiative': [
-    'Leadership style',
-    'Examples of initiative',
-    'Project/people management experience',
-    'Stakeholder management'
-  ],
-  'Adaptability': [
-    'Experience in dynamic environments',
-    'Handling change/uncertainty',
-    'Response to changing scenarios'
-  ],
-  'Domain Knowledge': [
-    'Industry-specific knowledge',
-    'Regulatory awareness'
-  ],
-  'Red Flags': [
-    'Evasive or vague answers',
-    'Blaming others for failures',
-    'Overstated achievements',
-    'Poor listening or attitude'
-  ]
-};
 
-interface Consultant {
-  id: string;
-  name: string;
-}
-const DUMMY_CONSULTANTS: Consultant[] = [
-  { id: 'c1', name: 'Alice Johnson' },
-  { id: 'c2', name: 'Bob Smith' }
-];
 
-// Service types from schema.prisma
-const SERVICE_TYPES = [
-  'ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM',
-  'ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM',
-  'ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM',
-  'ISO_27017_CLOUD_SECURITY_CONTROLS',
-  'ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD',
-  'ISO_20000_SERVICE_MANAGEMENT',
-  'ISO_12207_SOFTWARE_LIFE_CYCLE',
-  'ISO_42001_AI_MANAGEMENT_SYSTEM',
-  'TESTING_SERVICES',
-  'RISK_ASSESSMENT',
-  'BUSINESS_IMPACT_ANALYSIS',
-  'PRIVACY_IMPACT_ANALYSIS',
-  'DATA_ASSURANCE',
-  'AUDIT',
-  'AWARENESS_TRAINING',
-  'TABLETOP_EXERCISE',
-  'OTHER'
-];
 
 const Configurations: React.FC = () => {
   const [configurations, setConfigurations] = useState<GroupedConfig>({});
@@ -137,9 +46,6 @@ const Configurations: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('Configurations');
   // Feedback state
-  const [selectedConsultant, setSelectedConsultant] = useState<string>('');
-  const [selectedCategoryFB, setSelectedCategoryFB] = useState<string>(FEEDBACK_CATEGORIES[0]);
-  const [feedbackData, setFeedbackData] = useState<Record<string, {score:number; comment:string}>>({});
   useEffect(() => {
     const fetchConfigurations = async () => {
       try {
@@ -171,6 +77,7 @@ const Configurations: React.FC = () => {
 
   const handleSaveConfig = async (config: Partial<ConfigItem>) => {
     try {
+
       const response = await api.post('/api/config', config);
       
       if (response.data?.success === false) {
@@ -403,135 +310,19 @@ const Configurations: React.FC = () => {
       </div>
       
       {activeTab === 'Configurations' && (
-        <> 
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Configuration Settings</h1>
-              <p className="text-gray-400 mt-1">
-                Manage system configurations and templates
-              </p>
-            </div>
-            
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Configuration category tabs */}
-              <div className="bg-[#242935] rounded-xl p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-white">
-                    Configuration Categories
-                  </h2>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(configurations).map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setActiveCategory(category)}
-                      className={`px-3 py-1.5 rounded-lg text-sm ${
-                        activeCategory === category
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-[#1a1f2b] text-gray-300 hover:bg-[#323a50]'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rest of configurations tab content */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-semibold text-gray-200">Platform Configurations</h1>
-                  <p className="text-gray-400 mt-1">Manage system-wide settings and configurations</p>
-                </div>
-                <button 
-                  onClick={() => setNewConfig({ key: '', value: '', category: activeCategory || '' })}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Add New Configuration
-                </button>
-              </div>
-
-              {/* Configuration Content */}
-              <div className="md:col-span-3 bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-                {newConfig ? (
-                  renderConfigForm(newConfig, true)
-                ) : editingConfig ? (
-                  renderConfigForm(editingConfig)
-                ) : activeCategory === 'Project Proposal' ? (
-                  <ProjectProposalUpload
-                    category={activeCategory}
-                    configurations={configurations[activeCategory] || []}
-                    onUpload={handleUploadDocument}
-                  />
-                ) : activeCategory === 'Project Plan' ? (
-                  <ProjectPlanUpload
-                    configurations={configurations[activeCategory] || []}
-                    // category=''
-                    // projectId=''
-                  />
-                ) : activeCategory && configurations[activeCategory] ? (
-                  <>
-                    <h2 className="text-lg font-medium text-gray-200 mb-4">
-                      {activeCategory} Settings
-                    </h2>
-                    <div className="space-y-4">
-                      {configurations[activeCategory].map(config => (
-                        <div key={config.id} className="bg-[#242935] rounded-xl p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-gray-200 font-medium">{config.key}</h3>
-                                <p className="text-gray-400 text-sm mt-1">{config.description}</p>
-  
-                            
-                            </div>
-                            
-                            <div className="flex space-x-2">
-                            <button 
-  onClick={() => setEditingConfig(config)}
-  className="flex items-center gap-1 text-sm px-2 py-1 rounded shadow-sm text-white hover:text-blue-400 border border-blue-200 hover:border-blue-300 transition"
->
-  
-  Edit
-</button>
-
-<button 
-  onClick={() => handleDeleteConfig(config.key)}
-  className="flex items-center gap-1 text-sm px-2 py-1 rounded shadow-sm text-white hover:text-red-400 border border-red-200 hover:border-red-300 transition"
->
- 
-  Delete
-</button>
-
-                            </div>
-                          </div>
-                          <div className="mt-3 p-3 bg-[#1a1f2b] rounded-lg text-gray-300">
-                            {config.value}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p>Select a category or add a new configuration</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </>
+       <ConfigurationSystem
+        configurations={configurations}
+        activeCategory={activeCategory || ''}
+        setActiveCategory={setActiveCategory}
+        newConfig={newConfig}
+        setNewConfig={setNewConfig}
+        renderConfigForm={renderConfigForm}
+        editingConfig={editingConfig}
+        setEditingConfig={setEditingConfig}
+        handleDeleteConfig={handleDeleteConfig}
+        handleUploadDocument={handleUploadDocument}
+        loading={loading}
+       />
       )}
 
       {activeTab === 'Feedback' && (

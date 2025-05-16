@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { useRbac } from '../contexts/RbacContext';
 
-// Define UserRole type here since the import is causing an error
 type UserRole = 'ADMIN' | 'USER' | 'MANAGER' | 'CONSULTANT' | string;
 
 interface ProtectedRouteProps {
@@ -19,6 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, loading: authLoading } = useAuth();
   const { permissions, roles, loading: rbacLoading } = useRbac();
+  const location = useLocation();
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
@@ -27,46 +27,30 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return;
     }
 
-    // Check permissions
     if (requiredPermissions.length > 0) {
-      const hasRequiredPerm = requiredPermissions.some(perm => 
-        permissions.includes(perm)
-      );
-      setHasAccess(hasRequiredPerm);
-    }
-    // Check roles
-    else if (allowedRoles.length > 0) {
-      const hasAllowedRole = allowedRoles.some(role => 
-        roles.includes(role)
-      );
-      setHasAccess(hasAllowedRole);
-    }
-    // Just authenticated
-    else {
+      const hasPerm = requiredPermissions.some(perm => permissions.includes(perm));
+      setHasAccess(hasPerm);
+    } else if (allowedRoles.length > 0) {
+      const hasRole = allowedRoles.some(role => roles.includes(role));
+      setHasAccess(hasRole);
+    } else {
       setHasAccess(true);
     }
   }, [user, permissions, roles, requiredPermissions, allowedRoles]);
 
-  // Loading state
-  // if (authLoading || rbacLoading) {
-  //   return (
-  //     <div className="flex items-center justify-center h-screen">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-  //     </div>
-  //   );
-  // }
-
-  // Not authenticated
-  if (!user) {
-    return <Navigate to={redirectPath} replace />;
+  // ✅ Hooks must come first — return only after them
+  if (authLoading || rbacLoading) {
+    return null; // or <LoadingOverlay message="Checking permissions..." />
   }
 
-  // User is authenticated but doesn't have required roles/permissions
-  // if (!hasAccess) {
-  //   return <Navigate to="/unauthorized" replace />;
-  // }
+  if (!user) {
+    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+  }
 
-  // User is authenticated and authorized
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
+  }
+
   return <Outlet />;
 };
 

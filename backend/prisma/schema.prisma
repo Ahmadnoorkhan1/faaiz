@@ -148,6 +148,10 @@ model User {
   // RBAC relations
   userRoles UserRoleAssignment[]
 
+  clientScopingForms   ScopingForm[] @relation("ClientScopingForms")
+  createdScopingForms  ScopingForm[] @relation("CreatedScopingForms")
+
+
   // Communication
   chatRooms      ChatRoomParticipant[]
   messages       Message[]
@@ -465,3 +469,27 @@ model EventAttendee {
 
   @@id([eventId, userId])
 }
+
+model ScopingForm{
+  id          String       @id @default(uuid())
+  service     ServiceType?  // Using the existing ServiceType enum
+  
+  // Store questions and options as JSON arrays
+  questions   Json        // [{id: string, text: string, type: string, options: string[], required: boolean}]
+  answers     Json?       // [{questionId: string, answer: string}] - Optional since form may not be filled yet
+  
+  // Relations
+  client      User? @relation("ClientScopingForms", fields: [clientId], references: [id])
+  clientId    String?
+
+  createdBy   User @relation("CreatedScopingForms", fields: [createdById], references: [id])
+  createdById String
+  
+  status      String      @default("pending") // pending, submitted, approved
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([clientId, service]) // Each client can have one form per service
+}
+

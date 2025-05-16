@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Dashboard/Sidebar';
 import TopNav from '../components/Dashboard/Topnav';
 import ConsultantProfileCompletionWrapper from '../components/Dashboard/ConsultantProfileCompletionWrapper';
+import ClientProfileCompletionWrapper from '../components/Dashboard/ClientProfileCompletionWrapper';
 import { useAuth } from '../utils/AuthContext';
 import { useProfile } from '../utils/ProfileContext';
 import api from '../service/apiService';
@@ -20,11 +21,11 @@ const DashboardLayout = () => {
       setProfileData, 
       setLoading, 
       loading,
+      profileData
     } = useProfile();
 
   useEffect(()=>{
     const checkUserProfiles = async () => {
-      console.log('Current user:', user);
       if (!user?.id) return;
       
       try {
@@ -67,6 +68,34 @@ const DashboardLayout = () => {
     checkUserProfiles();
   },[user, setUserType, setProfileData, setLoading])
 
+  
+
+  const whenShouldOutletBeRendered = () => {
+    switch(user.role){
+      case "CLIENT":
+        return profileData.onboardingStatus === "COMPLETED" ? <OutletToRender /> : <ClientProfileCompletionWrapper />
+      case "CONSULTANT":
+        return profileData.onboardingStatus === "APPROVED" ? <OutletToRender /> : <ConsultantProfileCompletionWrapper />
+      case "ADMIN":
+        return <OutletToRender />
+    }
+  }
+
+
+  const OutletToRender = () => {
+    return(
+      <div className="min-h-screen bg-[#0f1117]">
+        <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
+        <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <TopNav onMenuClick={toggleSidebar} />
+          <main className="flex-1 p-6">
+            <Outlet />
+          </main>
+        </div>
+    </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0f1117]">
@@ -74,18 +103,7 @@ const DashboardLayout = () => {
       </div>
     );
   }
-  return (
-    <div className="min-h-screen bg-[#0f1117]">
-      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
-      <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <TopNav onMenuClick={toggleSidebar} />
-        <main className="flex-1 p-6">
-          <Outlet />
-        </main>
-      </div>
-      <ConsultantProfileCompletionWrapper />
-    </div>
-  );
+  return whenShouldOutletBeRendered();
 };
 
 export default DashboardLayout; 

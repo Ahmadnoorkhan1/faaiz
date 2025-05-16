@@ -7,7 +7,6 @@ import { useAuth } from '../../utils/AuthContext';
 const Dashboard: React.FC = () => {
   const {user} = useAuth();
 
-  console.log(user, ' <<< This is the user type');
 
   const [ndaSigned, setNdaSigned] = useState<boolean | null>(null);
   const [ndaLoading, setNdaLoading] = useState<boolean>(false);
@@ -19,7 +18,6 @@ const Dashboard: React.FC = () => {
         setNdaLoading(true);
         try {
           const response = await get<{ data: { ndaSigned: boolean } }>(`/api/consultants/${user.id}/nda-status`);
-          console.log(response);
           setNdaSigned(response.data.ndaSigned);
         } catch (error) {
           console.error('Error checking NDA status:', error);

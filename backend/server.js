@@ -16,7 +16,7 @@ import roleRoutes from './routes/roleRoutes.js';
 import configRoutes from './routes/configRoutes.js';
 import permissionRoutes from './routes/permissionRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
-
+import scopingFormRoutes from './routes/ScopingFormRoutes.js';
 // import userRoutes from "./src/routes/userRoutes.js";
 // import clientRoutes from "./src/routes/clientRoutes.js";
 
@@ -57,7 +57,7 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/tasks', taskRoutes);
-
+app.use('/api/scoping-forms', scopingFormRoutes);
 // app.use('/api/users', userRoutes);
 // app.use('/api/clients', clientRoutes);
 

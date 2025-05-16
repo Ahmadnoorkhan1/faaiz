@@ -143,6 +143,7 @@ export const getClients = async (req, res, next) => {
   try {
     const clientProfile = await prisma.clientProfile.findMany({
         include: { user: { select: { id: true, email: true, role: true } } },
+        orderBy: { createdAt: 'desc' }
       });
     
     res.status(200).json({

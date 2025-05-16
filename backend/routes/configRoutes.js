@@ -4,7 +4,8 @@ import {
   getConfigurations,
   getConfigurationByKey,
   upsertConfiguration,
-  deleteConfiguration
+  deleteConfiguration,
+  createConfiguration
 } from '../controllers/configController.js';
 
 const router = express.Router();
@@ -20,6 +21,9 @@ router.route('/')
 router.route('/:key')
   .get(getConfigurationByKey)
   .delete(deleteConfiguration);
+
+router.route('/create')
+  .post(createConfiguration);
 
 const configRoutes = router;
 export default configRoutes; 
