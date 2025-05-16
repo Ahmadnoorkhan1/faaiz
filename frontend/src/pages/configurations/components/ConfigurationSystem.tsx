@@ -1,7 +1,10 @@
+import ScopingForms from "../ScopingForms";
 import ProjectPlanUpload from "./ProjectPlanUpload";
 import ProjectProposalUpload from "./ProjectProposalUpload";
-import ScopingForm from "./ScopingForm";
-import ScopingFormBuilder from "./ScopingFormBuilder";
+// import ScopingForm from "./ScopingForm";
+// import ScopingFormBuilder from "./ScopingFormBuilder";
+// import ScopingForm from "./ScopingForm";
+
 
 interface ConfigurationSystemProps {
   configurations: any;
@@ -123,7 +126,7 @@ const ConfigurationSystem = ({
           />
         );
       case "Scoping Form":
-        return <ScopingForm  />;
+        return <ScopingForms  />;
       case "":
         return noConfigurations();
       default:

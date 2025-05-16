@@ -3,6 +3,8 @@ import api from '../../service/apiService';
 import toast, { Toaster } from 'react-hot-toast';
 import FeedbackSystem from './components/FeedbackSystem';
 import ConfigurationSystem from './components/ConfigurationSystem';
+import ClientScopingSystem from './components/ClientScopingSystem';
+// import ClientScopingSystem from './components/ClientScopingSystem';
 
 interface ConfigItem {
   id: string;
@@ -17,7 +19,7 @@ interface ConfigItem {
 type GroupedConfig = Record<string, ConfigItem[]>;
 
 // Tabs and Feedback system constants
-const TABS = ['Configurations', 'Feedback'] as const;
+const TABS = ['Configurations', 'Feedback', 'Client Scoping'] as const;
 type TabType = (typeof TABS)[number];
 
 const FEEDBACK_CATEGORIES = [
@@ -32,9 +34,6 @@ const FEEDBACK_CATEGORIES = [
   'Domain Knowledge',
   'Red Flags'
 ];
-
-
-
 
 const Configurations: React.FC = () => {
   const [configurations, setConfigurations] = useState<GroupedConfig>({});
@@ -326,7 +325,11 @@ const Configurations: React.FC = () => {
       )}
 
       {activeTab === 'Feedback' && (
-       <FeedbackSystem/>
+        <FeedbackSystem/>
+      )}
+      
+      {activeTab === 'Client Scoping' && (
+        <ClientScopingSystem/>
       )}
     </div>
   );
