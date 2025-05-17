@@ -9,7 +9,6 @@ export const createScopingFormController = async (req, res) => {
     createdById
   })
 
-  
   try {
     const scopingForm = await prisma.scopingForm.create({
       data: {
@@ -60,27 +59,30 @@ export const getAllScopingFormsController = async (req, res) => {
     return res.status(200).json(scopingForms);
   } catch (error) {
     return res.status(500).json({ error: error.message });
-  }
+  } 
 };
 
 export const getScopingFormByServiceController = async (req, res) => {
   const { service } = req.body;
 
   try {
-    // Use findMany instead of findUnique since service isn't a unique field
+    // Only get template forms (where clientId is null)
     const scopingForms = await prisma.scopingForm.findMany({
-      where: { service },
+      where: { 
+        service,
+        clientId: null // Add this filter to get only templates
+      },
     });
 
     return res.status(200).json({
       success: true,
-      message: "Scoping forms retrieved successfully",
+      message: "Scoping form templates retrieved successfully",
       data: scopingForms
     });
   } catch (error) {
     return res.status(500).json({ 
       success: false, 
-      message: "Error retrieving scoping forms", 
+      message: "Error retrieving scoping form templates", 
       error: error.message 
     });
   }
@@ -122,6 +124,78 @@ export const deleteScopingFormController = async (req, res) => {
  * @route GET /api/scoping-forms/client/:clientId/service/:serviceType
  * @access Private
  */
+// export const getClientScopingFormController = async (req, res) => {
+//   try {
+//     const { clientId, serviceType } = req.params;
+    
+//     // Check if client exists
+//     const client = await prisma.clientProfile.findUnique({
+//       where: { id: clientId },
+//       include: { 
+//         user: {
+//           select: { id: true, email: true }
+//         }
+//       }
+//     });
+    
+//     if (!client) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Client not found"
+//       });
+//     }
+    
+//     // Get form template for this service type
+//     const formTemplate = await prisma.scopingForm.findFirst({
+//       where: {
+//         service: serviceType,
+//         clientId: null // Get the template form (not client-specific)
+//       }
+//     });
+    
+//     if (!formTemplate) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Form template not found for this service type"
+//       });
+//     }
+    
+//     // Check if client has already filled this form
+//     const clientForm = await prisma.scopingForm.findFirst({
+//       where: {
+//         clientId,
+//         service: serviceType
+//       }
+//     });
+    
+//     // Prepare response with template questions and client answers if available
+//     const response = {
+//       clientId,
+//       serviceType,
+//       formId: formTemplate.id,
+//       title: `${serviceType.replace(/_/g, ' ')} Scoping Form`,
+//       questions: formTemplate.questions,
+//       answers: clientForm?.answers || {},
+//       status: clientForm?.status || 'PENDING',
+//       lastUpdated: clientForm?.updatedAt || null
+//     };
+    
+//     return res.status(200).json({
+//       success: true,
+//       message: "Scoping form retrieved successfully",
+//       data: response
+//     });
+//   } catch (error) {
+//     console.error('Error retrieving client scoping form:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error retrieving scoping form",
+//       error: error.message
+//     });
+//   }
+// };
+
+
 export const getClientScopingFormController = async (req, res) => {
   try {
     const { clientId, serviceType } = req.params;
@@ -143,6 +217,16 @@ export const getClientScopingFormController = async (req, res) => {
       });
     }
     
+    if (!client.user) {
+      return res.status(404).json({
+        success: false,
+        message: "Client has no associated user account"
+      });
+    }
+    
+    // Get the User ID to look up client forms
+    const userId = client.user.id;
+    
     // Get form template for this service type
     const formTemplate = await prisma.scopingForm.findFirst({
       where: {
@@ -158,14 +242,19 @@ export const getClientScopingFormController = async (req, res) => {
       });
     }
     
-    // Check if client has already filled this form
+    // Check if client has already filled this form - USING USER ID
     const clientForm = await prisma.scopingForm.findFirst({
       where: {
-        clientId,
+        clientId: userId, // Use User ID instead of ClientProfile ID
         service: serviceType
       }
     });
     
+    // Extract notes from clientProfile if available
+    const scopingDetails = client.scopingDetails 
+      ? JSON.parse(client.scopingDetails) 
+      : {};
+      
     // Prepare response with template questions and client answers if available
     const response = {
       clientId,
@@ -174,6 +263,7 @@ export const getClientScopingFormController = async (req, res) => {
       title: `${serviceType.replace(/_/g, ' ')} Scoping Form`,
       questions: formTemplate.questions,
       answers: clientForm?.answers || {},
+      notes: scopingDetails.notes || client.adminReviewNotes || "",
       status: clientForm?.status || 'PENDING',
       lastUpdated: clientForm?.updatedAt || null
     };
@@ -192,7 +282,6 @@ export const getClientScopingFormController = async (req, res) => {
     });
   }
 };
-
 /**
  * Get scoping form in HTML format for rendering
  * @route GET /api/scoping-forms/client/:clientId/service/:serviceType/html

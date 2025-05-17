@@ -178,61 +178,68 @@ const ClientScopingSystem: React.FC = () => {
 
   // Fetch scoping forms for the selected client
   const fetchClientScopingForms = async () => {
-    if (!selectedClient) return;
-    
-    try {
-      setLoadingForms(true);
-      setFormResponses({});
-      
-      const formsByService: Record<string, ScopingForm> = {};
-      
-      // Get scoping forms for each of the client's requested services
-      for (const service of selectedClient.requestedServices) {
-        try {
-          const response = await api.post('/api/scoping-forms/get-by-service', {
-            service,
-          });
-          
-          // Handle the correct response structure
-          if (response.data.success && response.data.data.length > 0) {
-            // Store just the form object, not the entire response
-            formsByService[service] = response.data.data[0];
+  if (!selectedClient) return;
+
+  try {
+    setLoadingForms(true);
+    setFormResponses({});
+
+    const formsByService: Record<string, ScopingForm> = {};
+
+    // Get scoping forms for each of the client's requested services
+    for (const service of selectedClient.requestedServices) {
+      try {
+        const response = await api.post('/api/scoping-forms/get-by-service', {
+          service,
+        });
+
+        // Handle the correct response structure for the provided API response
+        if (response.data.success && Array.isArray(response.data.data) && response.data.data.length > 0) {
+          // The API returns an array of form templates for the service
+          const form = response.data.data[0];
+          // Ensure questions are always an array of objects
+          if (Array.isArray(form.questions)) {
+            formsByService[service] = {
+              ...form,
+              questions: form.questions.map((q: any) => ({
+                id: q.id,
+                text: q.text,
+                type: q.type,
+                required: q.required ?? false,
+                options: q.options ?? [],
+              })),
+            };
           }
-        } catch (err) {
-          console.warn(`No scoping form found for service: ${service}`);
         }
+      } catch (err) {
+        console.warn(`No scoping form found for service: ${service}`);
       }
-      
-      setScopingForms(formsByService);
-      
-      // Set active service to the first one that has a form
-      const serviceWithForm = Object.keys(formsByService)[0];
-      setActiveService(serviceWithForm || null);
-      
-      // Initialize form responses
-      const initialResponses: Record<string, any> = {};
-      Object.entries(formsByService).forEach(([service, form]) => {
-        if (form.questions) {
-          const questions = typeof form.questions === 'string' 
-            ? JSON.parse(form.questions) 
-            : form.questions;
-            
-          Object.keys(questions).forEach(questionId => {
-            const question = questions[questionId];
-            const questionType = question.type || 'text';
-            initialResponses[questionId] = questionType === 'checkbox' ? [] : '';
-          });
-        }
-      });
-      
-      setFormResponses(initialResponses);
-    } catch (error: any) {
-      console.error('Error fetching scoping forms:', error);
-      toast.error(error.message || 'Failed to load scoping forms');
-    } finally {
-      setLoadingForms(false);
     }
-  };
+
+    setScopingForms(formsByService);
+
+    // Set active service to the first one that has a form
+    const serviceWithForm = Object.keys(formsByService)[0];
+    setActiveService(serviceWithForm || null);
+
+    // Initialize form responses
+    const initialResponses: Record<string, any> = {};
+    Object.entries(formsByService).forEach(([service, form]) => {
+      if (Array.isArray(form.questions)) {
+        form.questions.forEach((question) => {
+          initialResponses[question.id] = question.type === 'checkbox' ? [] : '';
+        });
+      }
+    });
+
+    setFormResponses(initialResponses);
+  } catch (error: any) {
+    console.error('Error fetching scoping forms:', error);
+    toast.error(error.message || 'Failed to load scoping forms');
+  } finally {
+    setLoadingForms(false);
+  }
+};
 
   // Handle client selection
   const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

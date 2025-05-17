@@ -3,7 +3,7 @@ import {
   createScopingFormController, 
   getAllScopingFormsController, 
   getScopingFormByServiceController, 
-  updateScopingFormController, 
+  updateScopingFormController,  
   deleteScopingFormController, 
   submitClientScopingFormController,
   getClientScopingFormController,  // Add this new controller
