@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../utils/AuthContext';
 
 // NDA Content Component
-const NDAContent = ({ consultantName, consultantEmail, onClose, onSign }: { 
+export const NDAContent = ({ consultantName, consultantEmail, onClose, onSign }: { 
   consultantName: string;
   consultantEmail: string;
   onClose: () => void;

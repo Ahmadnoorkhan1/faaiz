@@ -59,7 +59,6 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/scoping-forms', scopingFormRoutes);
 // app.use('/api/users', userRoutes);
-// app.use('/api/clients', clientRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

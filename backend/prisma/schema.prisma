@@ -25,6 +25,8 @@ enum OnboardingStatus {
   // Scoping states (for clients)
   SCOPING_IN_PROGRESS // Admin adding scoping details
   SCOPING_REVIEW      // Client reviewing scoping details
+
+  NDA_PENDING         //NDA Pending to sign from client
   
   // Terms and approval states
   TERMS_PENDING       // Waiting for client to accept terms
@@ -194,6 +196,7 @@ model ClientProfile {
   // Legal
   termsAccepted          Boolean   @default(false)
 
+  ndaPdfUrl              String?
   // Status tracking
   currentStep            Int               @default(0)
   onboardingStatus       OnboardingStatus  @default(PENDING_DISCOVERY)  // Changed from NOT_STARTED

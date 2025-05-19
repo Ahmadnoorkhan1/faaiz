@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { sendClientDiscoveryInvitation, sendClientScopingNotification } from '../utils/emailService.js';
+import { uploadToAzure } from '../config/azureStorage.js';
+import PDFDocument from 'pdfkit';
 
 const prisma = new PrismaClient();
 
@@ -554,3 +556,231 @@ export const getClientByUserId = async (req, res) => {
     });
   }
 };
+
+
+export const updateClientStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updatedClient = await prisma.clientProfile.update({
+      where: { id },
+      data: {
+        onboardingStatus: status
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Client status updated successfully',
+      data: updatedClient
+    });
+  } catch (error) {
+    console.error('Error updating client status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating client status',
+      error: error.message
+    });
+  }
+};
+
+const generateNDAPdf = async (clientName, clientEmail, signatureUrl, signatureData) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Create a new PDF document
+      const doc = new PDFDocument({ margin: 50 });
+      
+      // Buffer to collect PDF data
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        resolve(pdfBuffer);
+      });
+
+      // Add header
+      doc.fontSize(20).font('Helvetica-Bold').text('Confidentiality Agreement', { align: 'center' });
+      doc.moveDown();
+      
+      // Current date
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // Add NDA content
+      doc.fontSize(12).font('Helvetica');
+      
+      doc.text(`This Agreement (hereinafter referred to as this "Agreement") is made with effect from ${currentDate} (the "Effective Date") between Secureitlab Co W.L.L (hereinafter referred to as "SITL") whose principal offices are located at: Unit 23, Building 1431, Road 3624, Area 536, AI Diraz, Kingdom of Bahrain`);
+      doc.moveDown();
+      
+      doc.text('and');
+      doc.moveDown();
+      
+      doc.text(`2) The undersigned person: ${clientName} (${clientEmail})`);
+      doc.moveDown();
+
+      doc.text('2.1 member of SITL\'s staff on definite contracts and internships');
+      doc.text('2.2 member of SITL\'s staff on indefinite contracts');
+      doc.text('2.3 member of SITL\'s staff employed from sub-contractors.');
+      doc.moveDown();
+
+      doc.text('(any of which are hereinafter referred to as the "Employee")');
+      doc.moveDown();
+
+      doc.text('3) The Employee undertakes and confirms that all matters relating to SITL referred to as "SITL") shall be subject to this Agreement.');
+      doc.moveDown();
+
+      // NDA terms - adding a few key points (simplified for this implementation)
+      doc.text('• The Employee hereby agrees to treat all Proprietary, Highly Confidential, Top-Secret Information defined below as confidential at all times and shall only use such Information solely for the purpose of conducting SITL business at all times.');
+      doc.moveDown();
+      
+      doc.text('• For the purpose of this agreement Highly Confidential Information is a sensitive form of information. This information is distributed on a "Need to Know" basis only.');
+      doc.moveDown();
+      
+      doc.text('• The Employee hereby agrees that with regard to such Proprietary Highly Confidential, Top Secret Information the Employee shall not copy, remove, erase, corrupt, destroy, use, disclose, transfer, sell, lease, rent, steal, borrow, lend or cause to become known in any manner whatsoever such Proprietary Information in any manner which is not duly authorized by SITL.');
+      doc.moveDown();
+      
+      doc.text('• In the event that the Employee ceases to be employed by SITL for whatever reason the terms of this Agreement shall remain in effect with respect to any Proprietary Information for 7 years from the date of the Employee\'s termination with SITL.');
+      doc.moveDown();
+      
+      // Add signature section
+      doc.moveDown();
+      doc.text('The Employee', { align: 'left' });
+      doc.moveDown();
+      
+      doc.text(`Name: ${clientName}`, { align: 'left' });
+      doc.moveDown();
+      
+      doc.text('Signed:', { align: 'left' });
+      
+      // Add the signature image directly from base64 data
+      if (signatureData) {
+        const imgBuffer = Buffer.from(signatureData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        doc.image(imgBuffer, { width: 200, align: 'left' });
+      }
+      
+      doc.moveDown();
+      doc.text(`Date: ${currentDate}`, { align: 'left' });
+      doc.moveDown(2);
+      
+      // SITL signature section
+      doc.text('On behalf of Secureitlab W.L.L', { align: 'left' });
+      doc.moveDown();
+      
+      doc.text('Name: Ashish Sharma', { align: 'left' });
+      doc.moveDown();
+      
+      doc.text('Position in Company: Partner', { align: 'left' });
+      doc.moveDown();
+      
+      doc.text('Date: March 20, 2025', { align: 'left' });
+      
+      // Finalize PDF
+      doc.end();
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+export const updateClientNDA = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { signatureData } = req.body;
+    
+    // Validate input
+    if (!signatureData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Signature data is required'
+      });
+    }
+
+    console.log(id, 'id')
+    // Check if client exists
+    const client = await prisma.clientProfile.findUnique({ 
+      where: { id: id },
+      include: { user: { select: { id: true, email: true } } }
+    });
+
+    
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client profile not found'
+      });
+    }
+    
+    // Make sure the authenticated user is the same as the client
+    if (client.user.id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to sign NDA for this client'
+      });
+    }
+    
+    // The signature data is a base64 encoded image
+    // Convert it to a buffer to store in Azure
+    const signatureBuffer = Buffer.from(
+      signatureData.replace(/^data:image\/\w+;base64,/, ''),
+      'base64'
+    );
+    
+    // 1. Upload signature to Azure
+    const signatureUrl = await uploadToAzure(
+      signatureBuffer,
+      `signatures-${req.user.id}`,
+      `nda-signature-${id}-${Date.now()}.png`
+    );
+
+    // 2. Generate PDF with NDA content and signature
+    const pdfBuffer = await generateNDAPdf(
+      client.fullName,
+      client.email,
+      signatureUrl,
+      signatureData
+    );
+
+    // 3. Upload PDF to Azure
+    const pdfUrl = await uploadToAzure(
+      pdfBuffer,
+      `client-nda-documents`,
+      `NDA-${id}.pdf`
+    );
+    
+    
+    
+    // Add ndaPdfUrl to the object
+    
+    // Update the consultant profile
+    const updatedClient = await prisma.clientProfile.update({
+      where: { id },
+      data: {
+        onboardingStatus: 'ONBOARDED'
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        ...updatedClient,
+        ndaPdfUrl: pdfUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating client NDA:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating client NDA',
+      error: error.message
+    });
+  }
+};
+
+
+

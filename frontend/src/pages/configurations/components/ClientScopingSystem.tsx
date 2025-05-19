@@ -96,6 +96,7 @@ const ClientScopingSystem: React.FC = () => {
       const response = await api.get('/api/clients');
       
       if (response.data?.success) {
+
         const processedClients = response.data.data.map((client: any) => {
           // Parse requestedServices if it's a string
           let requestedServices = client.requestedServices || [];
@@ -115,8 +116,9 @@ const ClientScopingSystem: React.FC = () => {
             user: client.user || { id: client.userId, email: 'N/A' }
           };
         });
+        const filteredClients = processedClients.filter((client:any)=>client.onboardingStatus==='DISCOVERY_SCHEDULED')
         
-        setClients(processedClients);
+        setClients(filteredClients);
       } else {
         throw new Error(response.data?.message || 'Failed to fetch clients');
       }
@@ -178,7 +180,12 @@ const ClientScopingSystem: React.FC = () => {
 
   // Fetch scoping forms for the selected client
   const fetchClientScopingForms = async () => {
-  if (!selectedClient) return;
+  if (!selectedClient) {
+    toast.error('No client selected');
+    return;
+  };
+  console.log(selectedClient , ' selected client ')
+
 
   try {
     setLoadingForms(true);

@@ -4,6 +4,8 @@ import { useAuth } from "../../utils/AuthContext";
 import api from "../../service/apiService";
 import { toast } from "react-hot-toast";
 import confetti from "canvas-confetti";
+import { NDAContent } from "../../pages/Dashboard/Profile";
+import ProposalPreview from "../../pages/ClientOnboarding/components/ProposalGeneration";
 
 // Types
 type OnboardingStep = 
@@ -60,7 +62,7 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const termsRef = useRef<HTMLDivElement>(null);
   
-  // NDA state
+  // NDA state 
   const [ndaStatus, setNdaStatus] = useState<{ signed: boolean, url?: string }>({ signed: false });
   const [signature, setSignature] = useState<string>("");
   const [signingNda, setSigningNda] = useState<boolean>(false);
@@ -169,22 +171,16 @@ const ClientProfileCompletionWrapper: React.FC = () => {
       setStepError(null);
       
       // Call the terms API endpoint
-      const response = await api.post(`/api/clients/${profileData.id}/terms`, {
-        termsAccepted: true
+      const response = await api.post(`/api/clients/${profileData.id}/status`, {
+        status: "NDA_PENDING"
       });
-      
+
       if (response.data.success) {
         toast.success('Terms accepted successfully');
-        
-        // Instead of reloading, update status and move directly to NDA step
-        await api.post(`/api/clients/${profileData.id}/status`, {
-          status: "NDA_PENDING"
-        });
-        
         // Advance to NDA step
         setCurrentStep(3);
       } else {
-        throw new Error(response.data.message || 'Failed to accept terms');
+        toast.error(response.data.message || 'Failed to accept terms');
       }
     } catch (error: any) {
       console.error('Error accepting terms:', error);
@@ -210,7 +206,7 @@ const ClientProfileCompletionWrapper: React.FC = () => {
     }
   };
 
-  const handleSignNDA = async () => {
+  const handleSignNDA = async (signature:any) => {
     if (!signature) {
       toast.error('Please draw your signature before submitting');
       return;
@@ -245,60 +241,25 @@ const ClientProfileCompletionWrapper: React.FC = () => {
     }
   };
 
+  const handleAcceptProposal = useCallback(async () => {
+    if (!profileData.id) {
+      toast.error('Your profile information is not available');
+      return;
+    }
+    try { 
+      toast.success('Proposal accepted successfully');
+      setSubmitting(true);
+      setStepError(null);
+      setCurrentStep(5);
+      
+    } catch (error: any) {
+      console.error('Error accepting proposal:', error);
+      setStepError(error.message || 'Failed to accept proposal');
+      toast.error(error.message || 'Failed to accept proposal');
+    }
+  }, [profileData.id]);
   // Drawing functions for signature pad
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    setIsDrawing(true);
-    const clientX = 'touches' in e 
-      ? e.touches[0].clientX 
-      : e.clientX;
-    const clientY = 'touches' in e 
-      ? e.touches[0].clientY 
-      : e.clientY;
-    const rect = canvas.getBoundingClientRect();
-    ctx.beginPath();
-    ctx.moveTo(clientX - rect.left, clientY - rect.top);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const clientX = 'touches' in e 
-      ? e.touches[0].clientX 
-      : e.clientX;
-    const clientY = 'touches' in e 
-      ? e.touches[0].clientY 
-      : e.clientY;
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(clientX - rect.left, clientY - rect.top);
-    ctx.stroke();
-  };
-
-  const endDrawing = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.closePath();
-    setIsDrawing(false);
-    setSignature(canvas.toDataURL('image/png'));
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setSignature('');
-  };
+  
 
   // UI Components
   const OnboardingStepper = () => (
@@ -552,63 +513,63 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   };
 
   // Modal wrappers
-  const renderDiscoveryCallPendingModal = () => (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
-      <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-2xl m-4">
-        <OnboardingStepper />
+  // const renderDiscoveryCallPendingModal = () => (
+  //   <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
+  //     <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-2xl m-4">
+  //       <OnboardingStepper />
         
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-200">
-            Discovery Call Required
-          </h2>
-        </div>
+  //       <div className="flex justify-between items-center mb-4">
+  //         <h2 className="text-xl font-semibold text-gray-200">
+  //           Discovery Call Required
+  //         </h2>
+  //       </div>
 
-        <div className="space-y-4 min-h-[40vh] max-h-[60vh]">
-          <div className="bg-[#242935] p-6 rounded-lg">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium text-gray-200 mb-2">Waiting for Discovery Call</h3>
-              <p className="text-gray-300 mb-4">
-                Your account is currently pending a discovery call with our team. This call is essential for us to understand your needs and requirements.
-              </p>
-              <p className="text-gray-400 text-sm">
-                Our team will contact you soon to schedule this call. In the meantime, you can browse through the dashboard, but some features may be limited.
-              </p>
-            </div>
-          </div>
+  //       <div className="space-y-4 min-h-[40vh] max-h-[60vh]">
+  //         <div className="bg-[#242935] p-6 rounded-lg">
+  //           <div className="flex flex-col items-center text-center">
+  //             <div className="mb-4">
+  //               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  //                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //               </svg>
+  //             </div>
+  //             <h3 className="text-xl font-medium text-gray-200 mb-2">Waiting for Discovery Call</h3>
+  //             <p className="text-gray-300 mb-4">
+  //               Your account is currently pending a discovery call with our team. This call is essential for us to understand your needs and requirements.
+  //             </p>
+  //             <p className="text-gray-400 text-sm">
+  //               Our team will contact you soon to schedule this call. In the meantime, you can browse through the dashboard, but some features may be limited.
+  //             </p>
+  //           </div>
+  //         </div>
 
-          <div className="bg-[#242935] p-4 rounded-lg border-l-4 border-blue-500">
-            <h4 className="text-md font-medium text-gray-200 mb-2">What to expect during the discovery call:</h4>
-            <ul className="list-disc pl-5 text-gray-300 space-y-1">
-              <li>Discussion of your organization's specific needs</li>
-              <li>Overview of our service capabilities</li>
-              <li>Initial assessment of security requirements</li>
-              <li>Timeline and next steps in the onboarding process</li>
-            </ul>
-          </div>
-        </div>
+  //         <div className="bg-[#242935] p-4 rounded-lg border-l-4 border-blue-500">
+  //           <h4 className="text-md font-medium text-gray-200 mb-2">What to expect during the discovery call:</h4>
+  //           <ul className="list-disc pl-5 text-gray-300 space-y-1">
+  //             <li>Discussion of your organization's specific needs</li>
+  //             <li>Overview of our service capabilities</li>
+  //             <li>Initial assessment of security requirements</li>
+  //             <li>Timeline and next steps in the onboarding process</li>
+  //           </ul>
+  //         </div>
+  //       </div>
         
-        <StepperNavigation
-          onBack={() => {}}
-          onNext={() => {}}
-          canGoBack={false}
-          canGoForward={true}
-          customRightButton={
-            <button 
-              className="bg-blue-500 hover:bg-blue-600 cursor-pointer text-white px-4 py-2 rounded-md transition-colors" 
-              onClick={handleLogout}
-            >
-              Log out
-            </button>
-          }
-        />
-      </div>
-    </div>
-  );
+  //       <StepperNavigation
+  //         onBack={() => {}}
+  //         onNext={() => {}}
+  //         canGoBack={false}
+  //         canGoForward={true}
+  //         customRightButton={
+  //           <button 
+  //             className="bg-blue-500 hover:bg-blue-600 cursor-pointer text-white px-4 py-2 rounded-md transition-colors" 
+  //             onClick={handleLogout}
+  //           >
+  //             Log out
+  //           </button>
+  //         }
+  //       />
+  //     </div>
+  //   </div>
+  // );
 
   const renderScopingForm = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
@@ -621,7 +582,7 @@ const ClientProfileCompletionWrapper: React.FC = () => {
           </h2>
         </div>
 
-        <ScopingForm onNext={() => setCurrentStep(3)} />
+        <ScopingForm onNext={() => setCurrentStep(2)} />
       </div>
     </div>
   );
@@ -653,7 +614,7 @@ const ClientProfileCompletionWrapper: React.FC = () => {
               className="h-64 overflow-y-auto p-4 text-white bg-[#1a1f2b] rounded-lg border border-gray-700 prose prose-sm prose-invert max-w-none custom-scrollbar"
             >
               <h4>Terms and Conditions of Service</h4>
-              <p>This Agreement ("Agreement") is entered into between SecureITLab Co W.L.L ("Company") and the client ("Client"). By using our services, you agree to the following terms and conditions:</p>
+              <p>This Agreement ("Agreement") is entered into between GRCDepartment Co W.L.L ("Company") and the client ("Client"). By using our services, you agree to the following terms and conditions:</p>
               
               <h5>1. Services</h5>
               <p>The Company will provide cybersecurity and compliance services as outlined in the approved project scope and statement of work (SOW).</p>
@@ -698,73 +659,10 @@ const ClientProfileCompletionWrapper: React.FC = () => {
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-3xl m-4">
         <OnboardingStepper />
-        
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-200">
-            Non-Disclosure Agreement Required
-          </h2>
-        </div>
-
-        {stepError && (
-          <div className="bg-red-900/20 border-l-4 border-red-500 p-4 rounded mb-4">
-            <p className="text-red-400">{stepError}</p>
-          </div>
-        )}
-
-        <div className="space-y-4 h-[calc(100vh-20rem)] overflow-y-auto pr-2 custom-scrollbar">
-          <div className="bg-[#242935] p-6 rounded-lg">
-            <p className="text-gray-300 mb-4">
-              Before proceeding to the dashboard, you must sign our Non-Disclosure Agreement (NDA).
-            </p>
-
-            <div className="bg-[#1a1f2b] p-4 rounded-lg text-gray-300 text-sm max-h-60 overflow-y-auto mb-6 custom-scrollbar">
-              {/* NDA content abbreviated */}
-              <h4 className="font-medium mb-2">NON-DISCLOSURE AGREEMENT</h4>
-              <p className="mb-4">This Agreement is made between Secureitlab Co W.L.L and {profileData.fullName || 'Client'}</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-lg mb-4">
-              <h4 className="font-medium text-gray-800 mb-2">Sign Below</h4>
-              <p className="text-gray-600 text-sm mb-4">Please draw your signature in the box below.</p>
-              
-              <div className="border border-gray-300 rounded-lg p-1 bg-white mb-2">
-                <canvas
-                  ref={canvasRef}
-                  width={500}
-                  height={150}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={endDrawing}
-                  onMouseLeave={endDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={endDrawing}
-                  className="w-full touch-none cursor-crosshair"
-                />
-              </div>
-              
-              <button
-                onClick={clearSignature}
-                className="text-blue-600 text-sm hover:text-blue-800"
-              >
-                Clear Signature
-              </button>
-            </div>
-            
-            {signature && (
-              <div className="bg-[#1a1f2b] p-4 rounded-lg mb-4">
-                <h4 className="font-medium text-gray-300 mb-2">Signature Preview</h4>
-                <div className="bg-white p-2 rounded">
-                  <img src={signature} alt="Your signature" className="max-h-20" />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        
+        <NDAContent consultantEmail={user.email} consultantName={profileData.fullName} onSign={handleSignNDA} onClose={()=>{}} />
         <StepperNavigation
           onBack={handleGoBack}
-          onNext={handleSignNDA}
+          onNext={()=>{}}
           canGoBack={true}
           canGoForward={!!signature && !signingNda}
           loading={signingNda}
@@ -773,6 +671,32 @@ const ClientProfileCompletionWrapper: React.FC = () => {
       </div>
     </div>
   );
+  
+  const renderProposal = () => {
+    return (
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
+        <div className="bg-[#1a1f2b] rounded-xl p-6  max-w-3xl m-4 relative overflow-y-scroll h-[75vh] ">
+          <div className="absolute inset-0 bg-blue-500/5 z-0"></div>
+          <div className="relative z-10">
+            <OnboardingStepper />
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-200 mb-2">Proposal</h2>
+            </div>
+            <div className="space-y-4">
+              <ProposalPreview name={profileData.fullName} organization={profileData.organization} requestedServices={profileData.requestedServices[0]} />
+            </div>
+            <StepperNavigation
+              onBack={handleGoBack}
+              onNext={handleAcceptProposal}
+              canGoBack={false}
+              canGoForward={true}
+              nextLabel="Accept Proposal"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderCompleted = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
@@ -880,7 +804,47 @@ const ClientProfileCompletionWrapper: React.FC = () => {
     );
   }
 
-  // Render the appropriate step - Updated to match new step indices
+  useEffect(()=>{
+    // const 
+  },[])
+
+
+  const renderDiscoveryCallPendingModal = () => {
+    return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
+        <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-2xl m-4">
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-200">
+            Discovery Call Required
+            </h2>
+        </div>
+
+        <div className="space-y-4">
+            <div className="bg-[#242935] p-6 rounded-lg">
+            <div className="flex flex-col items-center text-center">
+                <div className="mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                </div>
+                <h3 className="text-xl font-medium text-gray-200 mb-2">Waiting for Discovery Call</h3>
+                <p className="text-gray-300 mb-4">
+                Your account is currently pending a discovery call with our team. This call is essential for us to understand your needs and requirements.
+                </p>
+                <p className="text-gray-400 text-sm">
+                Our team will contact you soon to schedule this call. In the meantime, you can browse through the dashboard, but some features may be limited.
+                </p>
+            </div>
+            </div>
+            <div className="flex justify-end">
+                <button className="bg-blue-500 cursor-pointer text-white px-4 py-2 rounded-md" onClick={handleLogout} >Log out</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    )
+  }
+
   const renderSteps = () => {
     switch (currentStep) {
       case 0:
@@ -892,6 +856,8 @@ const ClientProfileCompletionWrapper: React.FC = () => {
       case 3:
         return renderNDA();
       case 4:
+        return renderProposal();
+      case 5:
         return renderCompleted();
       default:
         return renderDiscoveryCallPendingModal();
