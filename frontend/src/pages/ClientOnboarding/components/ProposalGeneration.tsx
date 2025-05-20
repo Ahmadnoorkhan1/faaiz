@@ -280,7 +280,7 @@ External Audit support
         </li>
         </ul>
 
-        <ul>
+        <ul className="list-disc pl-6">
           <li>
             The timeline has been proposed inline with the scope. Any proposed changes to the agreed scope must be submitted in writing to GRCDepartment in writing. The changes will be evaluated in terms of their potential impact on the project timeline, deliverables, pricing and the agreed changes shall be signed by the contracting parties.​
           </li>

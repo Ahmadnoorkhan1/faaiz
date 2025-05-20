@@ -62,10 +62,10 @@ export function useScopingForm(initialForm?: ScopingForm) {
         createdById: user?.id,
         clientId: clientId || initialForm?.clientId || null
       };
-
-      const response = await api.post(endpoint, payload);
-
-      if (response.status === 200) {
+      console.log(payload,' <<< ');
+      const response:any = await api.post(endpoint, payload);
+      console.log(response.data,' <<< ');
+      if (response.data.success) {
         toast.success(`Scoping form ${initialForm ? 'updated' : 'created'} successfully`);
         return true;
       } else {

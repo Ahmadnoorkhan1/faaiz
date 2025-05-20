@@ -16,7 +16,7 @@ const router = express.Router();
 router.post('/create', createScopingFormController);
 router.get('/get-all', getAllScopingFormsController);
 router.post('/get-by-service', getScopingFormByServiceController);
-router.put('/update', updateScopingFormController);
+router.post('/update', updateScopingFormController);
 router.delete('/delete', deleteScopingFormController);
 router.post('/client-submission', authenticateToken, submitClientScopingFormController);
 

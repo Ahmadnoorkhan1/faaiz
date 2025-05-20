@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 // import { useuser } from '../../utils/userContext';
 import { get } from '../../service/apiService';
 import { useAuth } from '../../utils/AuthContext';
+import BarChart from '../../components/UI/BarChart';
 
 const Dashboard: React.FC = () => {
   const {user} = useAuth();
@@ -109,121 +110,200 @@ const Dashboard: React.FC = () => {
   // Client Dashboard
   if (user.role === 'CLIENT' && user ) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-200">Client Dashboard</h1>
-            <p className="text-gray-400 mt-1">Welcome back, {user?.companyName}</p>
-          </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Generate Report
-          </button>
-        </div>
+      // <div className="space-y-6">
+      //   <div className="flex items-center justify-between">
+      //     <div>
+      //       <h1 className="text-2xl font-semibold text-gray-200">Client Dashboard</h1>
+      //       <p className="text-gray-400 mt-1">Welcome back, {user?.companyName}</p>
+      //     </div>
+      //     <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+      //       Generate Report
+      //     </button>
+      //   </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <div key={index} className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-              <div className="flex items-center justify-between">
-                <h3 className="text-gray-400 text-sm font-medium">{stat.title}</h3>
-                <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                  {stat.change}
-                </span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-gray-200">{stat.value}</p>
-            </div>
-          ))}
-        </div>
+      //   {/* Stats Grid */}
+      //   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      //     {stats.map((stat, index) => (
+      //       <div key={index} className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      //         <div className="flex items-center justify-between">
+      //           <h3 className="text-gray-400 text-sm font-medium">{stat.title}</h3>
+      //           <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+      //             {stat.change}
+      //           </span>
+      //         </div>
+      //         <p className="mt-2 text-2xl font-semibold text-gray-200">{stat.value}</p>
+      //       </div>
+      //     ))}
+      //   </div>
 
-        {/* Quick Links */}
-        <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Quick Links</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </span>
-              <span className="text-gray-200">My Projects</span>
-            </button>
-            <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </span>
-              <span className="text-gray-200">My Consultants</span>
-            </button>
-            <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-500">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </span>
-              <span className="text-gray-200">Reports</span>
-            </button>
-          </div>
-        </div>
+      //   {/* Quick Links */}
+      //   <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      //     <h2 className="text-xl font-semibold text-gray-200 mb-4">Quick Links</h2>
+      //     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      //       <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
+      //         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+      //           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      //           </svg>
+      //         </span>
+      //         <span className="text-gray-200">My Projects</span>
+      //       </button>
+      //       <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
+      //         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
+      //           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      //           </svg>
+      //         </span>
+      //         <span className="text-gray-200">My Consultants</span>
+      //       </button>
+      //       <button className="flex items-center space-x-3 rounded-lg bg-[#242935] p-4 hover:bg-[#2d3544] transition-colors">
+      //         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-500">
+      //           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      //           </svg>
+      //         </span>
+      //         <span className="text-gray-200">Reports</span>
+      //       </button>
+      //     </div>
+      //   </div>
 
-        {/* Recent Activity */}
-        <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Recent Activity</h2>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-4 p-4 hover:bg-[#242935] rounded-lg transition-colors">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    {activity.type === 'client' && (
-                      <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    )}
-                    {activity.type === 'project' && (
-                      <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    )}
-                    {activity.type === 'task' && (
-                      <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-200">{activity.title}</h4>
-                  <p className="text-sm text-gray-400">{activity.description}</p>
-                  <span className="text-xs text-gray-500">{activity.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      //   {/* Recent Activity */}
+      //   <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      //     <h2 className="text-xl font-semibold text-gray-200 mb-4">Recent Activity</h2>
+      //     <div className="space-y-4">
+      //       {recentActivity.map((activity) => (
+      //         <div key={activity.id} className="flex items-start space-x-4 p-4 hover:bg-[#242935] rounded-lg transition-colors">
+      //           <div className="flex-shrink-0">
+      //             <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+      //               {activity.type === 'client' && (
+      //                 <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      //                 </svg>
+      //               )}
+      //               {activity.type === 'project' && (
+      //                 <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      //                 </svg>
+      //               )}
+      //               {activity.type === 'task' && (
+      //                 <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      //                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      //                 </svg>
+      //               )}
+      //             </div>
+      //           </div>
+      //           <div className="flex-1">
+      //             <h4 className="text-sm font-medium text-gray-200">{activity.title}</h4>
+      //             <p className="text-sm text-gray-400">{activity.description}</p>
+      //             <span className="text-xs text-gray-500">{activity.time}</span>
+      //           </div>
+      //         </div>
+      //       ))}
+      //     </div>
+      //   </div>
 
-        {/* user Information */}
-        <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">user Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-400">Company Name</h3>
-              <p className="mt-1 text-gray-200">{user.companyName}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-400">Industry</h3>
-              <p className="mt-1 text-gray-200">{user.industry}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-400">Contact Person</h3>
-              <p className="mt-1 text-gray-200">{user.contactName}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-400">Contact Information</h3>
-              <p className="mt-1 text-gray-200">{user.contactEmail}</p>
-            </div>
-          </div>
+      //   {/* user Information */}
+      //   <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      //     <h2 className="text-xl font-semibold text-gray-200 mb-4">user Information</h2>
+      //     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      //       <div>
+      //         <h3 className="text-sm font-medium text-gray-400">Company Name</h3>
+      //         <p className="mt-1 text-gray-200">{user.companyName}</p>
+      //       </div>
+      //       <div>
+      //         <h3 className="text-sm font-medium text-gray-400">Industry</h3>
+      //         <p className="mt-1 text-gray-200">{user.industry}</p>
+      //       </div>
+      //       <div>
+      //         <h3 className="text-sm font-medium text-gray-400">Contact Person</h3>
+      //         <p className="mt-1 text-gray-200">{user.contactName}</p>
+      //       </div>
+      //       <div>
+      //         <h3 className="text-sm font-medium text-gray-400">Contact Information</h3>
+      //         <p className="mt-1 text-gray-200">{user.contactEmail}</p>
+      //       </div>
+      //     </div>
+      //   </div>
+      // </div>
+  <div className="space-y-6">
+  {/* Project Summary */}
+  <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-center">
+    <div>
+      <h2 className="text-xl font-semibold text-gray-200 mb-2">Project Summary</h2>
+      <div className="grid grid-cols-2 gap-4 text-gray-400">
+        <div>
+          <span className="font-medium">Project Name:</span> ISO 27001:2022 Implementation Project
+        </div>
+        <div>
+          <span className="font-medium">Client Name:</span> Client Name
+        </div>
+        <div>
+          <span className="font-medium">Phase:</span> All Phases
+        </div>
+        <div>
+          <span className="font-medium">Week:</span> Week Start Date – Week End Date
         </div>
       </div>
+    </div>
+    <div className="flex flex-col items-center mt-4 md:mt-0">
+      <span className="text-gray-400 font-medium">Project Progress</span>
+      <span className="text-3xl font-bold text-blue-500 mt-1">92%</span>
+      {/* Add a progress bar here if you like */}
+    </div>
+  </div>
+
+  {/* Phase Breakdown & Bar Chart */}
+  <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+    <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      <h3 className="text-gray-400 text-sm font-medium mb-2">Phase Status</h3>
+      <div className="flex space-x-6">
+        <div>
+          <span className="text-green-500 font-bold text-2xl">65</span>
+          <div className="text-gray-400 text-xs">Completed</div>
+        </div>
+        <div>
+          <span className="text-blue-500 font-bold text-2xl">3</span>
+          <div className="text-gray-400 text-xs">In Progress</div>
+        </div>
+        <div>
+          <span className="text-yellow-500 font-bold text-2xl">4</span>
+          <div className="text-gray-400 text-xs">To be Started</div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  {/* Achievements & Upcoming Tasks */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      <h3 className="text-purple-400 text-sm font-medium mb-2">Previous Achievements</h3>
+      <ul className="list-disc list-inside text-gray-200">
+        <li>Phase 02 completed.</li>
+        <li>ISO 27001 Documentation set completed.</li>
+        <li>ICT readiness for Business Continuity meeting completed</li>
+      </ul>
+    </div>
+    <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg">
+      <h3 className="text-purple-400 text-sm font-medium mb-2">Upcoming Tasks</h3>
+      <ul className="list-disc list-inside text-gray-200">
+        <li>ISSC Meeting</li>
+        <li>Internal Audit</li>
+        <li>Awareness training session</li>
+      </ul>
+    </div>
+  </div>
+
+  <div className="bg-[#1a1f2b] rounded-xl p-6 shadow-lg flex justify-center items-center">
+    <BarChart  />
+  </div>
+
+  {/* Requires Attention */}
+  <div className="bg-[#6d28d9] rounded-xl p-6 shadow-lg">
+    <h3 className="text-white text-sm font-medium mb-2">Requires Attention</h3>
+    <p className="text-white">No items at this time.</p>
+  </div>
+</div>
     );
   }
 

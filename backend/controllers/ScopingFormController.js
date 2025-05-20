@@ -97,9 +97,17 @@ export const updateScopingFormController = async (req, res) => {
       data: { service, questions, createdById, clientId },
     });
 
-    return res.status(200).json(scopingForm);
+    return res.status(200).json({
+      success:true,
+      message:"Scoping form updated successfully",
+      scopingForm
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      success:false,
+      message:"Error updating scoping form",
+      error:error.message
+    });
   }
 };
 

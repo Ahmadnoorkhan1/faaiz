@@ -41,6 +41,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
 
   const handleSaveForm = async () => {
     const success = await saveForm(selectedService);
+    console.log(success , ' Success is it?');
     if (success) {
       setTimeout(() => {
         onBack();
