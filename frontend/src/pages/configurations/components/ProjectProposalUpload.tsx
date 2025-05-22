@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import api from '../../../service/apiService';
 import ProposalPreview from './ProposalPreview';
 import ProposalBuilder from './ProposalBuilder';
+import ProposalGeneration from '../../ClientOnboarding/components/ProposalGeneration';
+
 
 interface ConfigItem {
   id: string;
@@ -42,9 +44,25 @@ interface ProjectProposalUploadProps {
 
 // New interface for modal content data
 interface ProposalData {
-  approachPhases: {id: number, phase: string, deliverables: string}[];
-  timeline: {id: number, phase: string, description: string}[];
-  deliverables: {id: number, title: string, description: string}[];
+  data: {
+    id: string;
+    serviceType: string;
+    phases: Array<{
+      id: number;
+      phase: string;
+      deliverables: string;
+    }>;
+    timeline: Array<{
+      id: number;
+      phase: string;
+      description: string;
+    }>;
+    deliverables: Array<{
+      id: number;
+      title: string;
+      description: string;
+    }>;
+  };
 }
 
 export const formatServiceName = (name: string) => {
@@ -68,8 +86,11 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [proposalData, setProposalData] = useState<ProposalData>({
-    approachPhases: [
+ const [proposalData, setProposalData] = useState<ProposalData>({
+  data: {
+    id: '',
+    serviceType: '',
+    phases: [
       { id: 1, phase: "Kick Off", deliverables: "Implementation methodology, Project point of contact, List of Deliverables, Information requisition, Draft project plan​" },
       { id: 2, phase: "Info Acquisition", deliverables: "IT infrastructure Details, Existing policies and procedures\nPrevious risk assessment or audit reports" }
     ],
@@ -79,7 +100,8 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
     deliverables: [
       { id: 1, title: "Initial Report", description: "Comprehensive analysis document" }
     ]
-  });
+  }
+});
   const proposalRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -142,11 +164,61 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
     }
   };
 
-  // Add new handlers for proposal generation
-  const handleOpenProposalBuilder = (service: string) => {
+
+  // useEffect(()=>{
+  //   // Fetch proposal data when the component mounts
+  //   const fetchProposalData = async () => {
+  //     try {
+  //       const response = await api.get('/api/proposals/getProposal/ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM');
+  //       if (response.data) {
+  //         setProposalData({
+  //           approachPhases: response.data.approachPhases,
+  //           timeline: response.data.timeline,
+  //           deliverables: response.data.deliverables
+  //         });
+  //       }
+  //       fetchProposalData();
+  //     } catch (error) {
+  //       console.error('Error fetching initial proposal data:', error);
+  //     }
+  //   };
+
+  //   fetchProposalData();
+  // },[])
+
+const handleGetProposal = async (serviceType: string) => {
+  try {
+    const response = await api.get(`/api/proposals/getProposal/${serviceType}`);
+
+    console.log('Fetched proposal data:', response.data);
+
+    if (response.data) {
+      setProposalData({
+        data: {
+          id: response.data.data.id,
+          serviceType: response.data.data.serviceType,
+          phases: response.data.data.phases,
+          timeline: response.data.data.timeline,
+          deliverables: response.data.data.deliverables
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching proposal:', error);
+    alert('Failed to fetch proposal data');
+  }
+};
+
+// Modify the handleOpenProposalBuilder function to fetch data
+const handleOpenProposalBuilder = async (service: string) => {
+  try {
+    await handleGetProposal(service);
     setSelectedService(service);
     setShowProposalModal(true);
-  };
+  } catch (error) {
+    console.error('Error loading proposal:', error);
+  }
+};
 
   const handleCloseProposalBuilder = () => {
     setShowProposalModal(false);
@@ -154,51 +226,104 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
     setShowPreview(false);
   };
 
-  const handleGenerateProposal = () => {
+const handleGenerateProposal = async (data: {
+    service: string;
+    phases: Array<{id: number; phase: string; deliverables: string}>;
+    timeline: Array<{id: number; phase: string; description: string}>;
+    deliverables: Array<{id: number; title: string; description: string}>;
+}) => {
+    try {
+      setUploadingService(data.service);
+      console.log('Starting proposal generation with data:', data);
 
-    console.log(proposalData,' <<< ', selectedService)
-    // Here you would generate and save the proposal
-    // For now just mark as generated
-    // if (selectedService) {
-    //   setUploadedServices(prev => new Set(prev).add(selectedService));
-    //   // setShowPreview(true);
-    // }
-  };
+      const transformedData = {
+        service: data.service,
+        approachPhases: data.phases.map(phase => ({
+          name: phase.phase || '',
+          description: phase.deliverables || '',
+          tasks: [],
+          duration: "2 weeks"
+        })),
+        timeline: data.timeline.map(item => ({
+          phase: item.phase || '',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
+          duration: "2 weeks",
+          milestones: []
+        })),
+        deliverables: data.deliverables.map(item => ({
+          name: item.title || '',
+          description: item.description || '',
+          format: "PDF Document",
+          dueDate: new Date().toISOString().split('T')[0]
+        }))
+      };
 
+      console.log('Sending transformed data:', transformedData);
+
+      const response = await api.post('/api/proposals/createProposal', transformedData);
+      console.log('Response received:', response);
+
+      // Check for successful status codes (200, 201, 204)
+      if ([200, 201, 204].includes(response.status)) {
+        console.log('Proposal generated successfully');
+        setUploadedServices(prev => new Set(prev).add(data.service));
+        handleCloseProposalBuilder();
+        alert('Proposal generated successfully!');
+      } else {
+        throw new Error(`Request failed with status: ${response.status}`);
+      }
+
+    } catch (error) {
+      console.error('Error generating proposal:', error);
+      alert('Failed to generate proposal. Please try again.');
+    } finally {
+      setUploadingService(null);
+    }
+};
   // Handle adding new items to tables
   const handleAddApproachPhase = () => {
-    const newId = proposalData.approachPhases.length > 0 ? 
-      Math.max(...proposalData.approachPhases.map(item => item.id)) + 1 : 1;
+    const newId = proposalData.data.phases.length > 0 ? 
+      Math.max(...proposalData.data.phases.map(item => item.id)) + 1 : 1;
     setProposalData({
       ...proposalData,
-      approachPhases: [
-        ...proposalData.approachPhases,
-        { id: newId, phase: "", deliverables: "" }
-      ]
+      data: {
+        ...proposalData.data,
+        phases: [
+          ...proposalData.data.phases,
+          { id: newId, phase: "", deliverables: "" }
+        ]
+      }
     });
   };
 
   const handleAddTimelineItem = () => {
-    const newId = proposalData.timeline.length > 0 ? 
-      Math.max(...proposalData.timeline.map(item => item.id)) + 1 : 1;
+    const newId = proposalData.data.timeline.length > 0 ? 
+      Math.max(...proposalData.data.timeline.map(item => item.id)) + 1 : 1;
     setProposalData({
       ...proposalData,
-      timeline: [
-        ...proposalData.timeline,
-        { id: newId, phase: "", description: "" }
-      ]
+      data: {
+        ...proposalData.data,
+        timeline: [
+          ...proposalData.data.timeline,
+          { id: newId, phase: "", description: "" }
+        ]
+      }
     });
   };
 
   const handleAddDeliverable = () => {
-    const newId = proposalData.deliverables.length > 0 ? 
-      Math.max(...proposalData.deliverables.map(item => item.id)) + 1 : 1;
+    const newId = proposalData.data.deliverables.length > 0 ? 
+      Math.max(...proposalData.data.deliverables.map(item => item.id)) + 1 : 1;
     setProposalData({
       ...proposalData,
-      deliverables: [
-        ...proposalData.deliverables,
-        { id: newId, title: "", description: "" }
-      ]
+      data: {
+        ...proposalData.data,
+        deliverables: [
+          ...proposalData.data.deliverables,
+          { id: newId, title: "", description: "" }
+        ]
+      }
     });
   };
 
@@ -206,27 +331,36 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   const handleUpdateApproachPhase = (id: number, field: 'phase' | 'deliverables', value: string) => {
     setProposalData({
       ...proposalData,
-      approachPhases: proposalData.approachPhases.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
+      data: {
+        ...proposalData.data,
+        phases: proposalData.data.phases.map(item => 
+          item.id === id ? { ...item, [field]: value } : item
+        )
+      }
     });
   };
 
   const handleUpdateTimelineItem = (id: number, field: 'phase' | 'description', value: string) => {
     setProposalData({
       ...proposalData,
-      timeline: proposalData.timeline.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
+      data: {
+        ...proposalData.data,
+        timeline: proposalData.data.timeline.map(item => 
+          item.id === id ? { ...item, [field]: value } : item
+        )
+      }
     });
   };
 
   const handleUpdateDeliverable = (id: number, field: 'title' | 'description', value: string) => {
     setProposalData({
       ...proposalData,
-      deliverables: proposalData.deliverables.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
+      data: {
+        ...proposalData.data,
+        deliverables: proposalData.data.deliverables.map(item => 
+          item.id === id ? { ...item, [field]: value } : item
+        )
+      }
     });
   };
 
@@ -234,21 +368,30 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   const handleRemoveApproachPhase = (id: number) => {
     setProposalData({
       ...proposalData,
-      approachPhases: proposalData.approachPhases.filter(item => item.id !== id)
+      data: {
+        ...proposalData.data,
+        phases: proposalData.data.phases.filter(item => item.id !== id)
+      }
     });
   };
 
   const handleRemoveTimelineItem = (id: number) => {
     setProposalData({
       ...proposalData,
-      timeline: proposalData.timeline.filter(item => item.id !== id)
+      data: {
+        ...proposalData.data,
+        timeline: proposalData.data.timeline.filter(item => item.id !== id)
+      }
     });
   };
 
   const handleRemoveDeliverable = (id: number) => {
     setProposalData({
       ...proposalData,
-      deliverables: proposalData.deliverables.filter(item => item.id !== id)
+      data: {
+        ...proposalData.data,
+        deliverables: proposalData.data.deliverables.filter(item => item.id !== id)
+      }
     });
   };
 
@@ -372,8 +515,9 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
           handleRemoveTimelineItem={handleRemoveTimelineItem}
           handleRemoveDeliverable={handleRemoveDeliverable}
           handleGenerateProposal={handleGenerateProposal}
-         />
+        />
       )}
+      
     </div>
   );
 };

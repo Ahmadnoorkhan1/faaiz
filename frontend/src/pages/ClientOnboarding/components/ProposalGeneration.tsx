@@ -1,15 +1,33 @@
 import React from "react";
 
 interface ProposalPreviewProps {
-  name: string;
+ name: string;
   organization: string;
   requestedServices: string;
+  proposalData: {
+    id: string;
+    serviceType: string;
+    phases: Array<{
+      id: number;
+      phase: string;
+      deliverables: string;
+    }>;
+    timeline: Array<{
+      id: number;
+      phase: string;
+      description: string;
+    }>;
+    deliverables: Array<{
+      id: number;
+      title: string;
+      description: string;
+    }>;
+  };
 }
-
 import '../../../index.css'
 import chart from '../../../assets/chart.png'
-const ProposalPreview: React.FC<ProposalPreviewProps> = ({name,organization,requestedServices}) => {
-  
+const ProposalPreview: React.FC<ProposalPreviewProps> = ({name,organization,requestedServices, proposalData}) => {
+
   // Watching the fields you need
 
   return (
@@ -135,110 +153,72 @@ const ProposalPreview: React.FC<ProposalPreviewProps> = ({name,organization,requ
         </ul>
       </section> */}
 
-      {/* Overall Approach (Table) */}
+    // ...existing code...
 
-      {/* OVER ALL APPROACH DYNAMIC TABLE */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Overall Approach</h2>
-        <table className="w-full border border-gray-300 text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2">No</th>
-              <th className="border px-4 py-2">Phases</th>
-              <th className="border px-4 py-2">Deliverables</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border px-4 py-2">01</td>
-              <td className="border px-4 py-2">Kick Off</td>
-              <td className="border px-4 py-2">Implementation methodology, Project point of contact, List of Deliverables, Information requisition, Draft project plan​</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">02</td>
-              <td className="border px-4 py-2">Info Acquisition</td>
-              <td className="border px-4 py-2">IT infrastructure Details, Existing policies and procedures
-Previous risk assessment or audit reports
-</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">03</td>
-              <td className="border px-4 py-2">Design the ISMS
-              </td>
-              <td className="border px-4 py-2">Establish the context, Scope and Objective, Needs  & Expectations, Current practices
-Security organization, Management commitment.
+{/* OVER ALL APPROACH DYNAMIC TABLE */}
+<section className="mb-8">
+  <h2 className="text-xl font-semibold mb-2">Overall Approach</h2>
+  <table className="w-full border border-gray-300 text-sm">
+    <thead>
+      <tr className="bg-gray-100">
+        <th className="border px-4 py-2">No</th>
+        <th className="border px-4 py-2">Phases</th>
+        <th className="border px-4 py-2">Deliverables</th>
+      </tr>
+    </thead>
+    <tbody>
+      {proposalData.phases.map((item, index) => (
+        <tr key={item.id}>
+          <td className="border px-4 py-2">{index + 1}</td>
+          <td className="border px-4 py-2">{item.phase}</td>
+          <td className="border px-4 py-2">{item.deliverables}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</section>
 
-</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">04</td>
-              <td className="border px-4 py-2">Gap Analysis</td>
-              <td className="border px-4 py-2">Gap Analysis report. Road map to compliance
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">05</td>
-              <td className="border px-4 py-2">Design and Develop</td>
-              <td className="border px-4 py-2">Mandatory ISMS documentation
-Policies, Procedures, Asset register, Plans  Baselines, Guidelines
+{/* PROJECT TIMELINE DYNAMIC TABLE */}
+<section className="mb-8">
+  <h2 className="text-xl font-semibold mb-2">Project Timeline</h2>
+  <table className="w-full border border-gray-300 text-sm">
+    <thead>
+      <tr className="bg-gray-100">
+        <th className="border px-4 py-2">Phase</th>
+        <th className="border px-4 py-2">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {proposalData.timeline.map((item) => (
+        <tr key={item.id}>
+          <td className="border px-4 py-2">{item.phase}</td>
+          <td className="border px-4 py-2">{item.description}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</section>
 
-</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">06</td>
-              <td className="border px-4 py-2">Risk Assessment</td>
-              <td className="border px-4 py-2">Comprehensive Risk Assessment on the identified critical Information assets 
-Risk Assessment & Treatment plan
-
-</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">07</td>
-              <td className="border px-4 py-2">Performance</td>
-              <td className="border px-4 py-2">Information security metrics development
-Internal audit Program, Internal audit
-Management review
-</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-2">08</td>
-              <td className="border px-4 py-2">Action Plan</td>
-              <td className="border px-4 py-2">ISMS compliance program
-Pre-certification audit preparation
-External Audit support
-</td>
-            </tr>
-             {/* Add more rows dynamically */}
-          </tbody>
-        </table>
-      </section>
-
-      {/* Project Timeline */}
-      {/* PROJECT TIMELINE DYNAMIC TABLE */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">
-          Project Timeline
-        </h2>
-        {/* <p>Below is a summary of the key scoping activities:</p> */}
-        {/* PHASE */}
-        <table>
-          <thead>
-            <tr>
-              <th>Phase</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>D1</td>
-              <td>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      {/* Project Deliverables */}
-      {/* PROJECT Deliverables DYNAMIC TABLE */}
-      
+{/* PROJECT Deliverables DYNAMIC TABLE */}
+<section className="mb-8">
+  <h2 className="text-xl font-semibold mb-2">Project Deliverables</h2>
+  <table className="w-full border border-gray-300 text-sm">
+    <thead>
+      <tr className="bg-gray-100">
+        <th className="border px-4 py-2">Title</th>
+        <th className="border px-4 py-2">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {proposalData.deliverables.map((item) => (
+        <tr key={item.id}>
+          <td className="border px-4 py-2">{item.title}</td>
+          <td className="border px-4 py-2">{item.description}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</section>
 
       {/* Project Assumptions and limitations */}
       <section className="mb-8">
