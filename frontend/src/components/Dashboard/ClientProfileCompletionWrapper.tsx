@@ -7,15 +7,37 @@ import confetti from "canvas-confetti";
 import { NDAContent } from "../../pages/Dashboard/Profile";
 import ProposalPreview from "../../pages/ClientOnboarding/components/ProposalGeneration";
 
+
+// Add after imports
+interface ProposalData {
+  id: string;
+  serviceType: string;
+  phases: Array<{
+    id: number;
+    phase: string;
+    deliverables: string;
+  }>;
+  timeline: Array<{
+    id: number;
+    phase: string;
+    description: string;
+  }>;
+  deliverables: Array<{
+    id: number;
+    title: string;
+    description: string;
+  }>;
+}
+
 // Types
-type OnboardingStep = 
-  | "NOT_STARTED" 
+type OnboardingStep =
+  | "NOT_STARTED"
   | "PENDING_DISCOVERY"
-  | "DISCOVERY_SCHEDULED" 
+  | "DISCOVERY_SCHEDULED"
   | "DISCOVERY_COMPLETED"
-  | "SCOPING_REVIEW" 
-  | "TERMS_PENDING" 
-  | "NDA_PENDING" 
+  | "SCOPING_REVIEW"
+  | "TERMS_PENDING"
+  | "NDA_PENDING"
   | "COMPLETED";
 
 // Updated mapping constants - removed "Scheduled" step
@@ -73,6 +95,36 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [stepError, setStepError] = useState<string | null>(null);
 
+
+const [proposalData, setProposalData] = useState<ProposalData | null>(null);
+
+  useEffect(() => {
+    if (currentStep === 4 && profileData?.requestedServices?.[0]) {
+      handleGetProposal(profileData.requestedServices[0]);
+    }
+  }, [currentStep, profileData?.requestedServices]);
+
+  const handleGetProposal = async (serviceType: string) => {
+    try {
+      const response = await api.get(`/api/proposals/getProposal/${serviceType}`);
+  
+      console.log('Fetched proposal data:', response.data);
+  
+      if (response.data) {
+         setProposalData({
+        id: response.data.data.id,
+        serviceType: response.data.data.serviceType,
+        phases: response.data.data.phases,
+        timeline: response.data.data.timeline,
+        deliverables: response.data.data.deliverables
+      });
+        console.log('Proposal data', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching proposal:', error);
+      toast.error('Failed to fetch proposal data');
+    }
+  };
   // Effect: Update current step based on onboarding status
   useEffect(() => {
     if (profileData && profileData.onboardingStatus) {
@@ -673,6 +725,9 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   );
   
   const renderProposal = () => {
+
+  
+
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
         <div className="bg-[#1a1f2b] rounded-xl p-6  max-w-3xl m-4 relative overflow-y-scroll h-[75vh] ">
@@ -683,7 +738,10 @@ const ClientProfileCompletionWrapper: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-200 mb-2">Proposal</h2>
             </div>
             <div className="space-y-4">
-              <ProposalPreview name={profileData.fullName} organization={profileData.organization} requestedServices={profileData.requestedServices[0]} />
+              <ProposalPreview name={profileData.fullName} organization={profileData.organization} requestedServices={profileData.requestedServices[0]}
+  proposalData={proposalData || undefined} // Convert null to undefined
+
+              />
             </div>
             <StepperNavigation
               onBack={handleGoBack}

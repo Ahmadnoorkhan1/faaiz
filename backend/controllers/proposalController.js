@@ -10,10 +10,10 @@ const prisma = new PrismaClient();
 
 export const generateServiceProposal = async (req, res) => {
   try {
-    const { service, approachPhases, timeline, deliverables } = req.body;
+const { serviceType, phases, timeline, deliverables } = req.body;
 
     // Validate input
-    if (!service || !approachPhases || !timeline || !deliverables) {
+    if (!serviceType || !phases || !timeline || !deliverables) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields'
@@ -23,8 +23,8 @@ export const generateServiceProposal = async (req, res) => {
     // Create the proposal
     const proposal = await prisma.serviceProposal.create({
       data: {
-        serviceType: service,
-        phases: approachPhases,
+        serviceType: serviceType,
+        phases: phases,
         timeline: timeline,
         deliverables: deliverables
       }

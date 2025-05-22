@@ -264,13 +264,15 @@ const ProposalBuilder:React.FC<ProposalData> = ({
                   >
                     Cancel
                   </button>
-                <button 
-  onClick={() => handleGenerateProposal({
-    service: selectedService,
-    phases: proposalData.data.phases,
-    timeline: proposalData.data.timeline,
-    deliverables: proposalData.data.deliverables
-  })}
+           <button 
+  onClick={() => {
+    handleGenerateProposal({
+      service: selectedService,
+      phases: proposalData.data.phases,       // Send raw data
+      timeline: proposalData.data.timeline,   // Send raw data
+      deliverables: proposalData.data.deliverables  // Send raw data
+    });
+  }}
   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
 >
   Generate Proposal

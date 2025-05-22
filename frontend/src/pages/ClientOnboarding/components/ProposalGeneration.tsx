@@ -1,10 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
+
+import '../../../index.css'
+import chart from '../../../assets/chart.png'
+import api from "../../../service/apiService";
+
 
 interface ProposalPreviewProps {
- name: string;
+  name: string;
   organization: string;
   requestedServices: string;
-  proposalData: {
+  proposalData?: {  // Add the ? to make it optional
     id: string;
     serviceType: string;
     phases: Array<{
@@ -24,11 +29,42 @@ interface ProposalPreviewProps {
     }>;
   };
 }
-import '../../../index.css'
-import chart from '../../../assets/chart.png'
-const ProposalPreview: React.FC<ProposalPreviewProps> = ({name,organization,requestedServices, proposalData}) => {
 
+const ProposalPreview: React.FC<ProposalPreviewProps> = ({name,organization,requestedServices, proposalData}) => {
+ // Add loading state check
+  if (!proposalData) {
+    return <div>Loading proposal data...</div>;
+  }
   // Watching the fields you need
+
+  useEffect(() => {
+    const handleGetProposal = async (serviceType: string) => {
+      try {
+        const response = await api.get(`/api/proposals/getProposal/${serviceType}`);
+
+        console.log('Fetched proposal data:', response.data);
+
+    if (response.data) {
+
+      console.log(response.data)
+      // setProposalData({
+      //   data: {
+      //     id: response.data.data.id,
+      //     serviceType: response.data.data.serviceType,
+      //     phases: response.data.data.phases,
+      //     timeline: response.data.data.timeline,
+      //     deliverables: response.data.data.deliverables
+      //   }
+      // });
+    }
+  } catch (error) {
+    console.error('Error fetching proposal:', error);
+    alert('Failed to fetch proposal data');
+  }
+};
+
+handleGetProposal(requestedServices);
+},[])
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 bg-white shadow-lg rounded-lg text-gray-800">

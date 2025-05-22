@@ -3,7 +3,7 @@ import api from '../../../service/apiService';
 import ProposalPreview from './ProposalPreview';
 import ProposalBuilder from './ProposalBuilder';
 import ProposalGeneration from '../../ClientOnboarding/components/ProposalGeneration';
-
+import toast from 'react-hot-toast';
 
 interface ConfigItem {
   id: string;
@@ -186,33 +186,12 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   //   fetchProposalData();
   // },[])
 
-const handleGetProposal = async (serviceType: string) => {
-  try {
-    const response = await api.get(`/api/proposals/getProposal/${serviceType}`);
 
-    console.log('Fetched proposal data:', response.data);
-
-    if (response.data) {
-      setProposalData({
-        data: {
-          id: response.data.data.id,
-          serviceType: response.data.data.serviceType,
-          phases: response.data.data.phases,
-          timeline: response.data.data.timeline,
-          deliverables: response.data.data.deliverables
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching proposal:', error);
-    alert('Failed to fetch proposal data');
-  }
-};
 
 // Modify the handleOpenProposalBuilder function to fetch data
 const handleOpenProposalBuilder = async (service: string) => {
   try {
-    await handleGetProposal(service);
+    // await handleGetProposal(service);
     setSelectedService(service);
     setShowProposalModal(true);
   } catch (error) {
@@ -234,49 +213,36 @@ const handleGenerateProposal = async (data: {
 }) => {
     try {
       setUploadingService(data.service);
-      console.log('Starting proposal generation with data:', data);
-
+      
+      // Get auth token from localStorage if you're using it
+      const token = localStorage.getItem('token');
+      
       const transformedData = {
-        service: data.service,
-        approachPhases: data.phases.map(phase => ({
-          name: phase.phase || '',
-          description: phase.deliverables || '',
-          tasks: [],
-          duration: "2 weeks"
-        })),
-        timeline: data.timeline.map(item => ({
-          phase: item.phase || '',
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date().toISOString().split('T')[0],
-          duration: "2 weeks",
-          milestones: []
-        })),
-        deliverables: data.deliverables.map(item => ({
-          name: item.title || '',
-          description: item.description || '',
-          format: "PDF Document",
-          dueDate: new Date().toISOString().split('T')[0]
-        }))
+        serviceType: data.service,
+        phases: data.phases,
+        timeline: data.timeline,
+        deliverables: data.deliverables
       };
 
       console.log('Sending transformed data:', transformedData);
 
-      const response = await api.post('/api/proposals/createProposal', transformedData);
-      console.log('Response received:', response);
-
-      // Check for successful status codes (200, 201, 204)
-      if ([200, 201, 204].includes(response.status)) {
+      const response = await api.post('/api/proposals/createProposal', transformedData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 201) {
         console.log('Proposal generated successfully');
         setUploadedServices(prev => new Set(prev).add(data.service));
         handleCloseProposalBuilder();
-        alert('Proposal generated successfully!');
-      } else {
-        throw new Error(`Request failed with status: ${response.status}`);
+        toast.success('Proposal generated successfully!');
       }
 
     } catch (error) {
       console.error('Error generating proposal:', error);
-      alert('Failed to generate proposal. Please try again.');
+      toast.error('Failed to generate proposal. Please try again.');
     } finally {
       setUploadingService(null);
     }
@@ -446,6 +412,7 @@ const handleGenerateProposal = async (data: {
 
   return (
     <div className="space-y-4">
+      
       <h2 className="text-lg font-medium text-gray-200 mb-4">{category}</h2>
       
       <div className="bg-[#1a1f2b] rounded-lg p-4">
