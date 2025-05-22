@@ -5,7 +5,7 @@ import {
   getProjectById, 
   createProject, 
   updateProject, 
-  deleteProject 
+  deleteProject ,
 } from '../controllers/projectController.js';
 
 const router = express.Router();
@@ -23,6 +23,7 @@ router.route('/:id')
   .get(getProjectById)
   .put(updateProject)
   .delete(deleteProject);
+
 
 const projectRoutes = router;
 export default projectRoutes; 

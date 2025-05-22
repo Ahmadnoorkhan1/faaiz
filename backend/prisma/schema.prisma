@@ -496,3 +496,14 @@ model ScopingForm{
   @@unique([clientId, service]) // Each client can have one form per service
 }
 
+//Generate Proposal
+
+model ServiceProposal {
+  id           String      @id @default(uuid())
+  serviceType  ServiceType
+  phases       Json        
+  timeline     Json        
+  deliverables Json 
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt       
+}

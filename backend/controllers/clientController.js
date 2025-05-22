@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;import bcrypt from 'bcryptjs';
 import { sendClientDiscoveryInvitation, sendClientScopingNotification } from '../utils/emailService.js';
 import { uploadToAzure } from '../config/azureStorage.js';
 import PDFDocument from 'pdfkit';

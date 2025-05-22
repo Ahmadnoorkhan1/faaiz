@@ -1,4 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+// Use the recommended approach from the error message
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

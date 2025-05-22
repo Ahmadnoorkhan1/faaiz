@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import { uploadToAzure } from '../config/azureStorage.js';
 import prisma from '../config/prisma.js';
-import { ServiceType } from '@prisma/client';
-
+import pkg from '@prisma/client';
+const { ServiceType } = pkg;
 // Configure multer for file uploads
 const upload = multer({
   limits: {

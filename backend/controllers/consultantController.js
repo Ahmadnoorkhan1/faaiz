@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import { uploadToAzure } from '../config/azureStorage.js';
 import bcrypt from 'bcryptjs';
 import PDFDocument from 'pdfkit';
