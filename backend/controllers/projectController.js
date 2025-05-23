@@ -153,7 +153,7 @@ export const createProject = async (req, res, next) => {
       startDate, 
       endDate, 
       clientId,
-      consultantId,
+      // consultantId,
       userId
     } = req.body;
     
@@ -183,7 +183,6 @@ export const createProject = async (req, res, next) => {
           where: { id: clientId },
           include: { user: true }
         });
-        
         if (!clientProfile) {
           return res.status(400).json({
             success: false,
@@ -205,42 +204,42 @@ export const createProject = async (req, res, next) => {
     }
     
     // Similar logic for consultantId
-    let validConsultantId = consultantId;
+    // let validConsultantId = consultantId;
     
-    if (consultantId) {
-      const consultant = await prisma.user.findUnique({
-        where: { id: consultantId }
-      });
+    // if (consultantId) {
+    //   const consultant = await prisma.user.findUnique({
+    //     where: { id: consultantId }
+    //   });
       
-      if (consultant) {
-        console.log(`Found user with ID ${consultantId} - this is valid for Project.consultantId`);
-      } else {
-        const consultantProfile = await prisma.consultantProfile.findUnique({
-          where: { id: consultantId },
-          include: { user: true }
-        });
+    //   if (consultant) {
+    //     console.log(`Found user with ID ${consultantId} - this is valid for Project.consultantId`);
+    //   } else {
+    //     const consultantProfile = await prisma.consultantProfile.findUnique({
+    //       where: { id: consultantId },
+    //       include: { user: true }
+    //     });
         
-        if (!consultantProfile) {
-          return res.status(400).json({
-            success: false,
-            message: 'Consultant profile not found with the provided consultantId'
-          });
-        }
+    //     if (!consultantProfile) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Consultant profile not found with the provided consultantId'
+    //       });
+    //     }
         
-        if (consultantProfile.user) {
-          validConsultantId = consultantProfile.user.id;
-          console.log(`Using consultantProfile's userId ${validConsultantId} instead of consultantId ${consultantId}`);
-        } else {
-          return res.status(400).json({
-            success: false,
-            message: 'Consultant profile found but has no associated user'
-          });
-        }
-      }
-    }
+    //     if (consultantProfile.user) {
+    //       validConsultantId = consultantProfile.user.id;
+    //       console.log(`Using consultantProfile's userId ${validConsultantId} instead of consultantId ${consultantId}`);
+    //     } else {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Consultant profile found but has no associated user'
+    //       });
+    //     }
+    //   }
+    // }
 
     // Create project with valid IDs
-    console.log(`Creating project with clientId: ${validClientId}`);
+    // console.log(`Creating project with clientId: ${validClientId}`);
     const project = await prisma.project.create({
       data: {
         name,
@@ -249,14 +248,14 @@ export const createProject = async (req, res, next) => {
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
         clientId: validClientId,
-        consultantId: validConsultantId
+        // consultantId: validConsultantId
       },
       include: {
         client: true,
         consultant: true
       }
     });
-    
+    console.log('Project created:', project);
     res.status(201).json({
       success: true,
       data: project

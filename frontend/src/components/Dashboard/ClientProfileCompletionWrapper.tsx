@@ -6,6 +6,9 @@ import { toast } from "react-hot-toast";
 import confetti from "canvas-confetti";
 import { NDAContent } from "../../pages/Dashboard/Profile";
 import ProposalPreview from "../../pages/ClientOnboarding/components/ProposalGeneration";
+import { createProject, getDocumentsByService, downloadFile, importTasks } from "../../apihelpers";
+import { ServiceType } from "../../utils/schemas/clientSchema";
+import { useNavigate } from "react-router-dom";
 
 
 // Add after imports
@@ -63,6 +66,10 @@ const onboardingSteps = [
   { title: "Complete" }
 ];
 
+
+
+
+
 const ClientProfileCompletionWrapper: React.FC = () => {
   // Context hooks
   const { profileData, loading } = useProfile();
@@ -77,6 +84,9 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState<boolean>(false);
   const termsRef = useRef<HTMLDivElement>(null);
+  
+  // Navigation state
+  const navigate = useNavigate();
   
   // NDA state 
   const [ndaStatus, setNdaStatus] = useState<{ signed: boolean, url?: string }>({ signed: false });
@@ -477,6 +487,7 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       }
     }, [onNext]);
 
+  
     return (
       <>
         {scopingError && (
@@ -683,7 +694,56 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       </div>
     )
   }
+  const handleSubmit = async () => {
+  try {
+    toast.loading("Starting project setup...");
 
+    // Step 1: Create project
+        const serviceType = profileData.requestedServices[0]; // Get service type from profile data
+
+const projectId = await createProject(user.id, profileData.id, serviceType);
+    const userId = user?.id || profileData?.id;
+
+    toast.success(`Project created: ${projectId}`);
+
+    // Step 2: Fetch documents for the service type
+    const documents = await getDocumentsByService(serviceType);
+    console.log("Fetched documents:", documents);
+    const templateDoc = documents.find((doc: any) =>
+      (doc.fileType?.includes("spreadsheet") || doc.fileType?.includes("xlsx")) &&
+      doc.fileUrl
+    );
+
+    if (!templateDoc) {
+      toast.error("No suitable template document found.");
+      return;
+    }
+
+    // Step 3: Download the file
+    const file = await downloadFile(templateDoc.fileUrl);
+    if (!file) {
+      toast.error("Failed to download the template file.");
+      return;
+    }
+
+    // Step 4: Upload to import tasks
+   const tasks = await importTasks(file, projectId, userId);
+console.log("Tasks imported:", tasks);
+// navigate('/dashboard');
+// window.location.reload();
+if(tasks.data.tasks){
+  window.location.reload();
+
+}
+    toast.success("Tasks imported successfully!");
+
+  } catch (error) {
+    console.error("Error during project setup:", error);
+    toast.error("Something went wrong during the setup.");
+  } finally {
+    toast.dismiss();
+  }
+};
   const renderCompleted = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-3xl m-4 relative overflow-hidden">
@@ -769,7 +829,7 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
           
           <StepperNavigation
             onBack={() => {}}
-            onNext={() => window.location.reload()}
+            onNext={handleSubmit}
             canGoBack={false}
             canGoForward={true}
             nextLabel="Continue to Dashboard"
