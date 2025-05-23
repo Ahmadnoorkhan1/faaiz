@@ -273,7 +273,7 @@ const ProposalBuilder:React.FC<ProposalData> = ({
       deliverables: proposalData.data.deliverables  // Send raw data
     });
   }}
-  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
 >
   Generate Proposal
 </button>

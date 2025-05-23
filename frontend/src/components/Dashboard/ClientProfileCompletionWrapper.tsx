@@ -52,13 +52,7 @@ const statusToStepMap: Record<OnboardingStep, number> = {
   "COMPLETED": 4
 };
 
-const stepToStatusMap: Record<number, OnboardingStep> = {
-  0: "PENDING_DISCOVERY",
-  1: "DISCOVERY_COMPLETED",
-  2: "TERMS_PENDING",
-  3: "NDA_PENDING",
-  4: "COMPLETED"
-};
+
 
 // Updated onboarding steps - removed "Scheduled"
 const onboardingSteps = [
@@ -89,7 +83,6 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   const [signature, setSignature] = useState<string>("");
   const [signingNda, setSigningNda] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
   
   // UI state
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -196,12 +189,6 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const handleGoBack = useCallback(() => {
     if (currentStep > 0 && currentStep <= originalStep) {
       setCurrentStep(prev => prev - 1);
-    }
-  }, [currentStep, originalStep]);
-
-  const handleGoForward = useCallback(() => {
-    if (currentStep < onboardingSteps.length - 1 && currentStep < originalStep) {
-      setCurrentStep(prev => prev + 1);
     }
   }, [currentStep, originalStep]);
 
@@ -564,65 +551,6 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
     );
   };
 
-  // Modal wrappers
-  // const renderDiscoveryCallPendingModal = () => (
-  //   <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
-  //     <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-2xl m-4">
-  //       <OnboardingStepper />
-        
-  //       <div className="flex justify-between items-center mb-4">
-  //         <h2 className="text-xl font-semibold text-gray-200">
-  //           Discovery Call Required
-  //         </h2>
-  //       </div>
-
-  //       <div className="space-y-4 min-h-[40vh] max-h-[60vh]">
-  //         <div className="bg-[#242935] p-6 rounded-lg">
-  //           <div className="flex flex-col items-center text-center">
-  //             <div className="mb-4">
-  //               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  //                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  //               </svg>
-  //             </div>
-  //             <h3 className="text-xl font-medium text-gray-200 mb-2">Waiting for Discovery Call</h3>
-  //             <p className="text-gray-300 mb-4">
-  //               Your account is currently pending a discovery call with our team. This call is essential for us to understand your needs and requirements.
-  //             </p>
-  //             <p className="text-gray-400 text-sm">
-  //               Our team will contact you soon to schedule this call. In the meantime, you can browse through the dashboard, but some features may be limited.
-  //             </p>
-  //           </div>
-  //         </div>
-
-  //         <div className="bg-[#242935] p-4 rounded-lg border-l-4 border-blue-500">
-  //           <h4 className="text-md font-medium text-gray-200 mb-2">What to expect during the discovery call:</h4>
-  //           <ul className="list-disc pl-5 text-gray-300 space-y-1">
-  //             <li>Discussion of your organization's specific needs</li>
-  //             <li>Overview of our service capabilities</li>
-  //             <li>Initial assessment of security requirements</li>
-  //             <li>Timeline and next steps in the onboarding process</li>
-  //           </ul>
-  //         </div>
-  //       </div>
-        
-  //       <StepperNavigation
-  //         onBack={() => {}}
-  //         onNext={() => {}}
-  //         canGoBack={false}
-  //         canGoForward={true}
-  //         customRightButton={
-  //           <button 
-  //             className="bg-blue-500 hover:bg-blue-600 cursor-pointer text-white px-4 py-2 rounded-md transition-colors" 
-  //             onClick={handleLogout}
-  //           >
-  //             Log out
-  //           </button>
-  //         }
-  //       />
-  //     </div>
-  //   </div>
-  // );
-
   const renderScopingForm = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-4xl m-4">
@@ -837,6 +765,7 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
               </div>
             </div>
           </div>
+          {/* Faiz yar yaaha dal dena */}
           
           <StepperNavigation
             onBack={() => {}}

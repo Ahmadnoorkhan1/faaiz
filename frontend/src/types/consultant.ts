@@ -3,7 +3,8 @@ export type ConsultantStatus =
   | 'INTERVIEW_INVITED'
   | 'INTERVIEW_SCHEDULED'
   | 'REJECTED'
-  | 'APPROVED';
+  | 'APPROVED'
+  | 'NOT_STARTED';
 
 export interface Consultant {
   id: string;

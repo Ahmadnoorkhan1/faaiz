@@ -20,6 +20,20 @@ const { serviceType, phases, timeline, deliverables } = req.body;
       });
     }
 
+    // Check if proposal already exists
+    const existingProposal = await prisma.serviceProposal.findFirst({
+      where: {
+        serviceType: serviceType
+      }
+    });
+
+    if (existingProposal) {
+      return res.status(400).json({
+        success: false,
+        message: 'Proposal already exists for this service type'
+      });
+    }
+
     // Create the proposal
     const proposal = await prisma.serviceProposal.create({
       data: {

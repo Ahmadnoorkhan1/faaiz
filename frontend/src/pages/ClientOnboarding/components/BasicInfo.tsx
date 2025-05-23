@@ -3,6 +3,7 @@ import { useFormContext } from 'react-hook-form';
 import Input from '../../../components/FormElements/Input';
 import { ClientFormData } from '../../../utils/schemas/clientSchema';
 import api from '../../../service/apiService';
+import { formatServiceName } from '../../configurations/components/ProjectProposalUpload';
 
 interface ServiceType {
   value: string;
@@ -39,7 +40,7 @@ const BasicInfo: React.FC = () => {
         // Convert array of strings to array of objects with value and label
         const formattedServices = servicesData.map(service => ({
           value: service,
-          label: formatServiceLabel(service)
+          label: formatServiceName(service)
         }));
         
         setServiceTypes(formattedServices);
@@ -54,14 +55,6 @@ const BasicInfo: React.FC = () => {
     fetchServiceTypes();
   }, []);
 
-  // Format service label to be more readable
-  const formatServiceLabel = (service: string): string => {
-    return service
-      .replace(/_/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   // Handle radio button change
   const handleServiceChange = (value: string) => {

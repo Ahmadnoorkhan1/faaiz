@@ -3,6 +3,7 @@ import { FiCalendar } from "react-icons/fi";
 import { getClientInitials, getStatusText } from "../../utils/TableHelper";
 import "../../index.css";
 import StatusBadge from "../../pages/configurations/components/ConsultantManagement/StatusBadge";
+import { formatServiceName } from "../../pages/configurations/components/ProjectProposalUpload";
 interface TableProps {
   columns: string[];
   data: any[];
@@ -115,7 +116,7 @@ const ClientsTable = ({
           View
         </button>
         {
-          data.onboardingStatus === "NOT_STARTED" && (
+          (data.onboardingStatus === "NOT_STARTED" || data.onboardingStatus === "DISCOVERY_SCHEDULED") && (
           <button
             onClick={() => handleInviteModel(data)}
             className="px-4 py-2  text-blue-600 rounded-md cursor-pointer"
@@ -276,6 +277,8 @@ const ClientsTable = ({
               );
             })}
           </tbody>
+        {/* PAGINATION */}
+
           {pagination && (
             <tfoot>
               <tr>
@@ -284,6 +287,7 @@ const ClientsTable = ({
             </tfoot>
           )}
         </table>
+        {/* PAGINATION */}
         {pagination && (
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -294,6 +298,7 @@ const ClientsTable = ({
             </div>
           </div>
         )}
+        {/* PAGE SIZE */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <select
@@ -327,7 +332,7 @@ const ClientsTable = ({
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1  gap-8">
           {/* Left column - Basic info */}
           <div className="col-span-1">
             <div className="flex flex-col justify-start mb-4">
@@ -335,7 +340,7 @@ const ClientsTable = ({
                 {profileData.fullName}
               </h3>
               <div className="mt-2">
-                <StatusBadge status={profileData.onboardingStatus} />
+                <StatusBadge status={profileData.onboardingStatus} className="bg-blue-600" />
               </div>
             </div>
             
@@ -354,7 +359,7 @@ const ClientsTable = ({
               </div>
               <div>
                 <h4 className="text-xs font-medium text-gray-400 uppercase">Services Requested</h4>
-                <p className="text-sm text-gray-200">{profileData.requestedServices[0]}</p>
+                <p className="text-sm text-gray-200">{formatServiceName(profileData.requestedServices[0])}</p>
               </div>
               
             </div>

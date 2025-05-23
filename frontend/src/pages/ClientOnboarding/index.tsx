@@ -26,14 +26,7 @@ const stepFields = {
   1: ["email", "password", "fullName", "organization", "phoneNumber", "additionalContact"],
 };
 
-// Helper to format service name for readability
-const formatServiceName = (service: string): string => {
-  return service
-    .replace(/_/g, ' ')
-    .split(' ')
-    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ');
-};
+
 
 const ClientOnboarding: React.FC = () => {
   const navigate = useNavigate();
