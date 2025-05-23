@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import { connectDB } from "./config/db.js";
-import { initSuperAdmin } from "./utils/initSuperAdmin.js";
 // import { errorHandler } from "./src/middleware/error.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -75,10 +74,7 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Start server after connecting to database
-connectDB().then(async () => {
-  // Initialize super admin user
-  await initSuperAdmin();
-  
+connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });

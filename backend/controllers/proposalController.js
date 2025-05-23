@@ -78,3 +78,24 @@ export const getProposalByService = async (req, res) => {
     });
   }
 };
+
+// Get All Proposals
+export const getAllProposals = async (req, res) => {
+  try {
+    const proposals = await prisma.serviceProposal.findMany();
+    res.status(200).json({
+      success: true,
+      data: proposals
+    });
+  } catch (error) {
+    console.error('Error fetching proposals:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching proposals',
+
+      error: error.message
+    });
+  }
+};
+
+

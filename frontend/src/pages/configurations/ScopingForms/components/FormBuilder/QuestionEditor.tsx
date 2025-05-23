@@ -69,7 +69,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         />
       </div>
 
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 items-center hidden">
         <input 
           type="checkbox" 
           checked={required} 

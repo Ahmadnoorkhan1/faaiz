@@ -75,7 +75,7 @@ const DashboardLayout = () => {
       case "CLIENT":
         return profileData.onboardingStatus === "COMPLETED" ? <OutletToRender /> : <ClientProfileCompletionWrapper />
       case "CONSULTANT":
-        return profileData.onboardingStatus === "APPROVED" ? <OutletToRender /> : <ConsultantProfileCompletionWrapper />
+        return profileData.status === "APPROVED" ? <OutletToRender /> : <ConsultantProfileCompletionWrapper />
       case "ADMIN":
         return <OutletToRender />
     }
