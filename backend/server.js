@@ -18,6 +18,7 @@ import permissionRoutes from './routes/permissionRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import scopingFormRoutes from './routes/ScopingFormRoutes.js';
 import proposalRoutes from './routes/proposalRoutes.js';
+import serviceRoutes from './routes/serviceRoutes.js';
 // import userRoutes from "./src/routes/userRoutes.js";
 // import clientRoutes from "./src/routes/clientRoutes.js";
 
@@ -60,6 +61,7 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/scoping-forms', scopingFormRoutes);
 app.use('/api/proposals', proposalRoutes);
+app.use('/api/services', serviceRoutes);
 // app.use('/api/users', userRoutes);
 
 // Basic route for testing

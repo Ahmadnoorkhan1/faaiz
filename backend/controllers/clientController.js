@@ -96,7 +96,9 @@ export const createClient = async (req, res, next) => {
           organization,
           phoneNumber,
           additionalContact: additionalContact || null,
-          requestedServices: requestedServices || [],
+          requestedServices: {
+          connect: requestedServices?.map(serviceId => ({ id: serviceId })) || []
+    },
           otherDetails: otherDetailsJson,
           discoveryMethod: discoveryMethod || null,
           scopingDetails: scopingDetails || null,

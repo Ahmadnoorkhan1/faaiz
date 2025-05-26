@@ -145,6 +145,7 @@ const ClientOnboarding: React.FC = () => {
       setProcessingStatus("Creating account...");
       
       console.log("Submitting form data:", data);
+      console.log("requestedServices:", data.requestedServices);
 
       // Create new client profile with all payload data
       const clientResponse = await api.post("/api/clients", {
@@ -158,8 +159,13 @@ const ClientOnboarding: React.FC = () => {
         organization: data.organization,
         additionalContact: data.additionalContact || null,
         
-        // Service information
-        requestedServices: data.requestedServices,
+        // Service information using Prisma connect syntax
+requestedServices: {
+  connect: (Array.isArray(data.requestedServices)
+    ? data.requestedServices
+    : [data.requestedServices]
+  ).map((id: string) => ({ id }))
+},
         otherDetails: data.otherDetails || null,
         
         // Include discovery data with default values
@@ -176,6 +182,7 @@ const ClientOnboarding: React.FC = () => {
       const clientId = responseData.clientProfile.id;
       const userId = responseData.user.id;
       
+
       console.log("Created client with ID:", clientId);
       setProcessingStatus("Account created successfully!");
       

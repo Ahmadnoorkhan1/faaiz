@@ -19,11 +19,27 @@ const { serviceType, phases, timeline, deliverables } = req.body;
         message: 'Missing required fields'
       });
     }
+   console.log(serviceType, phases, timeline, deliverables);
+   //getService from database
+   const service = await prisma.service.findFirst({
+      where: {
+        name: serviceType
+      }
+
+    });
+    console.log(service);
+    // Check if service exists
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
 
     // Check if proposal already exists
     const existingProposal = await prisma.serviceProposal.findFirst({
       where: {
-        serviceType: serviceType
+        serviceId: service.id
       }
     });
 
@@ -37,7 +53,8 @@ const { serviceType, phases, timeline, deliverables } = req.body;
     // Create the proposal
     const proposal = await prisma.serviceProposal.create({
       data: {
-        serviceType: serviceType,
+        
+        serviceId: service.id,
         phases: phases,
         timeline: timeline,
         deliverables: deliverables

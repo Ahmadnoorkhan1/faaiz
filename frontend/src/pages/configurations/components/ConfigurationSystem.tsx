@@ -1,9 +1,11 @@
 import ScopingForms from "../ScopingForms";
 import ProjectPlanUpload from "./ProjectPlanUpload";
 import ProjectProposalUpload from "./ProjectProposalUpload";
+import ServiceManagement from "./Services/ServiceManagement";
 // import ScopingForm from "./ScopingForm";
 // import ScopingFormBuilder from "./ScopingFormBuilder";
 // import ScopingForm from "./ScopingForm";
+
 
 
 interface ConfigurationSystemProps {
@@ -127,8 +129,14 @@ const ConfigurationSystem = ({
         );
       case "Scoping Form":
         return <ScopingForms  />;
+
+      case "Service":
+        return (
+<ServiceManagement />      
+  );   //calll the component here 
       case "":
         return noConfigurations();
+
       default:
         return defaultConfigurations();
     }

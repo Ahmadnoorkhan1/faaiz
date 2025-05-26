@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../service/apiService';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../../utils/AuthContext';
+import { AnyZodObject } from 'zod';
 
 interface ConfigItem {
   id: string;
@@ -59,7 +60,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
     const fetchServiceTypes = async () => {
       try {
         setFetchingServiceTypes(true);
-        const response = await api.get('/api/documents/service-types');
+        const response = await api.get('/api/services');
         
         if (response.data?.success === false) {
           throw new Error(response.data?.message || 'Failed to fetch service types');
@@ -67,6 +68,8 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         
         if (response.data && Array.isArray(response.data.data)) {
           setServiceTypes(response.data.data);
+          
+          console.log("Fetched service types1:", response.data.data);
         } else if (response.data && Array.isArray(response.data)) {
           setServiceTypes(response.data);
         }
@@ -87,11 +90,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         const docsMap: Record<string, Document> = {};
         const uploadedSet = new Set<string>();
         
-        for (const serviceType of serviceTypes) {
+        for (const serviceType of serviceTypes as any) {
           try {
             setLoadingServices(prev => ({ ...prev, [serviceType]: true }));
-            
-            const response = await api.get(`/api/documents/by-service/${serviceType}`);
+            const response = await api.get(`/api/documents/by-service/${serviceType.name}`);
             
             if (response.data?.success === false) {
               throw new Error(response.data?.message || `Failed to fetch documents for ${serviceType}`);
@@ -105,7 +107,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
               docsMap[serviceType] = latestDoc;
               uploadedSet.add(serviceType);
             }
-          } catch (err) {
+            } catch (err) {
             console.error(`Error fetching documents for ${serviceType}:`, err);
           } finally {
             setLoadingServices(prev => ({ ...prev, [serviceType]: false }));
@@ -351,14 +353,14 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {serviceTypes.map(service => (
+          {serviceTypes.map((service:any) => (
             <div 
               key={service} 
               className="bg-[#242935] rounded-xl overflow-hidden shadow-md transition-all hover:shadow-lg"
             >
               <div className="p-4 border-b border-gray-700">
-                <h3 className="text-gray-200 font-medium truncate" title={formatServiceName(service)}>
-                  {formatServiceName(service)}
+                <h3 className="text-gray-200 font-medium truncate" title={formatServiceName(service.name)}>
+                  {formatServiceName(service.name)}
                 </h3>
               </div>
               
@@ -470,10 +472,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
                         type="file"
                         className="hidden"
                         accept=".xlsx,.docx,.pdf"
-                        onChange={(e) => handleFileChange(e, service)}
+                        onChange={(e) => handleFileChange(e, service.name)}
                         disabled={uploadingService !== null}
                       />
-                      {uploadingService === service ? (
+                      {uploadingService === service.name ? (
                         <span className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400">
                           <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

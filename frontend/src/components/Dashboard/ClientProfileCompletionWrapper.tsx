@@ -729,8 +729,7 @@ const projectId = await createProject(user.id, profileData.id, serviceType);
     // Step 4: Upload to import tasks
    const tasks = await importTasks(file, projectId, userId);
 console.log("Tasks imported:", tasks);
-// navigate('/dashboard');
-// window.location.reload();
+
 if(tasks.data.tasks){
   window.location.reload();
 

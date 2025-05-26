@@ -6,33 +6,63 @@ import FormTable from './components/FormTable';
 import FormBuilder from './components/FormBuilder';
 import FormView from './components/FormView';
 
-const SERVICE_OPTIONS = [
-  'ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM',
-  'ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM',
-  'ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM',
-  'ISO_27017_CLOUD_SECURITY_CONTROLS',
-  'ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD',
-  'ISO_20000_SERVICE_MANAGEMENT',
-  'ISO_12207_SOFTWARE_LIFE_CYCLE',
-  'ISO_42001_AI_MANAGEMENT_SYSTEM',
-  'TESTING_SERVICES',
-  'RISK_ASSESSMENT',
-  'BUSINESS_IMPACT_ANALYSIS',
-  'PRIVACY_IMPACT_ANALYSIS',
-  'DATA_ASSURANCE',
-  'AUDIT',
-  'AWARENESS_TRAINING',
-  'TABLETOP_EXERCISE',
-  'OTHER',
-];
+// const SERVICE_OPTIONS = [
+//   'ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM',
+//   'ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM',
+//   'ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM',
+//   'ISO_27017_CLOUD_SECURITY_CONTROLS',
+//   'ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD',
+//   'ISO_20000_SERVICE_MANAGEMENT',
+//   'ISO_12207_SOFTWARE_LIFE_CYCLE',
+//   'ISO_42001_AI_MANAGEMENT_SYSTEM',
+//   'TESTING_SERVICES',
+//   'RISK_ASSESSMENT',
+//   'BUSINESS_IMPACT_ANALYSIS',
+//   'PRIVACY_IMPACT_ANALYSIS',
+//   'DATA_ASSURANCE',
+//   'AUDIT',
+//   'AWARENESS_TRAINING',
+//   'TABLETOP_EXERCISE',
+//   'OTHER',
+// ];
 
-const ScopingForms: React.FC = () => {
+
+//getServices
+
+
+//endpoint to get SERVICE_OPTIONS
+
+
+  const ScopingForms: React.FC = () => {
   const [viewMode, setViewMode] = useState<FormViewMode>('Table');
   const [scopingForms, setScopingForms] = useState<ScopingForm[]>([]);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedForm, setSelectedForm] = useState<ScopingForm | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+ const [services,setServices]=useState([]);
 
+ 
+ useEffect(() => {
+  const fetchServices = async () => {
+    try {
+      const response = await api.get('/api/services');
+      if (response.data.success) {
+        // Transform the fetched service objects into an array of service names:
+        const serviceNames = response.data.data.map((service: any) => service.name);
+        setServices(serviceNames);
+        console.log("Fe:", serviceNames);
+      } else {
+        toast.error('Failed to fetch services');
+      }
+    } catch (error) {
+      toast.error('Error fetching services');
+      console.error(error);
+    }
+  };
+  fetchServices();
+}, []);
+
+ 
   useEffect(() => {
     fetchAllScopingForms();
   }, []);
@@ -89,7 +119,7 @@ const ScopingForms: React.FC = () => {
         return (
           <FormTable 
             scopingForms={scopingForms}
-            serviceOptions={SERVICE_OPTIONS}
+            serviceOptions={services}
             onViewForm={handleViewForm}
             onAddForm={handleAddForm}
           />

@@ -48,25 +48,21 @@ enum ConsultantStatus {
   APPROVED
 }
 
-// Reusable enum for services offered/requested
-enum ServiceType {
-  ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM
-  ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM
-  ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM
-  ISO_27017_CLOUD_SECURITY_CONTROLS
-  ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD
-  ISO_20000_SERVICE_MANAGEMENT
-  ISO_12207_SOFTWARE_LIFE_CYCLE
-  ISO_42001_AI_MANAGEMENT_SYSTEM
-  TESTING_SERVICES
-  RISK_ASSESSMENT
-  BUSINESS_IMPACT_ANALYSIS
-  PRIVACY_IMPACT_ANALYSIS
-  DATA_ASSURANCE
-  AUDIT
-  AWARENESS_TRAINING
-  TABLETOP_EXERCISE
-  OTHER
+
+// Remove the ServiceType enum and add this model
+model Service {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  
+  // Relations with all models that previously used ServiceType
+  clientProfiles     ClientProfile[]      // Many-to-many with ClientProfile
+  consultantProfiles ConsultantProfile[]  // Many-to-many with ConsultantProfile
+  documents          Document[]           // One-to-many with Document
+  scopingForms       ScopingForm[]       // One-to-many with ScopingForm
+  serviceProposals   ServiceProposal[]   // One-to-many with ServiceProposal
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum CallStatus {
@@ -172,7 +168,7 @@ model ClientProfile {
   organization      String
   additionalContact String?
 
-  requestedServices ServiceType[] @default([]) // replaces all the booleans
+  requestedServices Service[]
   otherDetails      String?
 
   // Discovery Call fields
@@ -223,7 +219,7 @@ model ConsultantProfile {
   certifications String[] @default([])
   cvUrl          String?
 
-  servicesOffered ServiceType[] @default([])
+  servicesOffered Service[] 
   otherDetails    String?
 
   // NDA fields
@@ -266,7 +262,8 @@ model Document {
   title        String?
   description  String? 
   documentType String       @default("PROPOSAL")
-  serviceType  ServiceType? // Add this field
+   service     Service? @relation(fields: [serviceId], references: [id])
+  serviceId   String?
   uploadedBy   User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
   uploadedById String
   client       User?        @relation("ClientDocuments", fields: [clientId], references: [id])
@@ -474,8 +471,9 @@ model EventAttendee {
 }
 
 model ScopingForm{
-  id          String       @id @default(uuid())
-  service     ServiceType?  // Using the existing ServiceType enum
+  id          String   @id @default(uuid())
+  service     Service? @relation(fields: [serviceId], references: [id])
+  serviceId   String?
   
   // Store questions and options as JSON arrays
   questions   Json        // [{id: string, text: string, type: string, options: string[], required: boolean}]
@@ -493,14 +491,15 @@ model ScopingForm{
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  @@unique([clientId, service]) // Each client can have one form per service
+  @@unique([clientId, serviceId]) // Updated to use serviceId instead of service
 }
 
 //Generate Proposal
 
 model ServiceProposal {
   id           String      @id @default(uuid())
-  serviceType  ServiceType
+  service      Service  @relation(fields: [serviceId], references: [id])
+  serviceId    String
   phases       Json        
   timeline     Json        
   deliverables Json 

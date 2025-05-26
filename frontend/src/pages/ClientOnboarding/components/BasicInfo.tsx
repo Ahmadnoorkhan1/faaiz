@@ -24,7 +24,7 @@ const BasicInfo: React.FC = () => {
         setFetchingServiceTypes(true);
         setError(null);
         const response = await api.get('/api/documents/service-types');
-        
+        console.log("test",response);
         if (response.data?.success === false) {
           throw new Error(response.data?.message || 'Failed to fetch service types');
         }

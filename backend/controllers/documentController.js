@@ -1,9 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
+import { ServiceTypes } from '../constants/services.js';
+
 import multer from 'multer';
 import { uploadToAzure } from '../config/azureStorage.js';
 import prisma from '../config/prisma.js';
 import pkg from '@prisma/client';
-const { ServiceType } = pkg;
+// const { ServiceType } = pkg;
 // Configure multer for file uploads
 const upload = multer({
   limits: {
@@ -56,12 +58,12 @@ export const documentController = {
         title,
         description
       } = req.body;      // Validate serviceType if provided
-      if (serviceType && !Object.values(ServiceType).includes(serviceType)) {
-        return res.status(400).json({ 
-          error: 'Invalid service type',
-          validTypes: Object.values(ServiceType)
-        });
-      }
+      // if (serviceType && !Object.values(ServiceType).includes(serviceType)) {
+      //   return res.status(400).json({ 
+      //     error: 'Invalid service type',
+      //     validTypes: Object.values(ServiceType)
+      //   });
+      // }
 
       // Get file type from the uploaded file
       const fileType = req.file.mimetype;      // Upload file to Azure Blob Storage
@@ -93,6 +95,10 @@ export const documentController = {
         req.file.originalname
       );
  
+
+      const service=await prisma.service.findMany({
+        where : {name:serviceType}
+      })
       // Create document record
       const document = await prisma.document.create({
         data: {
@@ -102,7 +108,8 @@ export const documentController = {
           title: title || req.file.originalname,
           description,
           documentType,
-          serviceType, // Add this field
+          // service: serviceType,
+          serviceId:service.id,
           uploadedById: req.user.id,
           clientId: clientId || null,
           consultantId: consultantId || null,
@@ -208,12 +215,12 @@ export const documentController = {
     console.log(serviceType)
     
     // Validate serviceType
-    if (!Object.values(ServiceType).includes(serviceType)) {
-      return res.status(400).json({ 
-        error: 'Invalid service type',
-        validTypes: Object.values(ServiceType)
-      });
-    }
+    // if (!Object.values(ServiceType).includes(serviceType)) {
+    //   return res.status(400).json({ 
+    //     error: 'Invalid service type',
+    //     validTypes: Object.values(ServiceType)
+    //   });
+    // }
 
     // Build where clause without user check
     const whereClause = {
@@ -263,15 +270,24 @@ export const documentController = {
   }
 },
   // Get all available service types
+  // async getServiceTypes(req, res) {
+  //   try {
+  //     // Return all service types from the imported enum
+  //     res.json(Object.values(ServiceType));
+  //   } catch (error) {
+  //     console.error('Error fetching service types:', error);
+  //     res.status(500).json({ error: 'Failed to fetch service types' });
+  //   }
+  // }, 
+
   async getServiceTypes(req, res) {
-    try {
-      // Return all service types from the imported enum
-      res.json(Object.values(ServiceType));
-    } catch (error) {
-      console.error('Error fetching service types:', error);
-      res.status(500).json({ error: 'Failed to fetch service types' });
-    }
-  }, 
+  try {
+    res.json(Object.values(ServiceTypes));
+  } catch (error) {
+    console.error('Error fetching service types:', error);
+    res.status(500).json({ error: 'Failed to fetch service types' });
+  }
+},
 
   // Update a document
   async updateDocument(req, res) {

@@ -16,25 +16,7 @@ interface ConfigItem {
 }
 
 // Service types from schema.prisma
-const SERVICE_TYPES = [
-  "ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM",
-  "ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM",
-  "ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM",
-  "ISO_27017_CLOUD_SECURITY_CONTROLS",
-  "ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD",
-  "ISO_20000_SERVICE_MANAGEMENT",
-  "ISO_12207_SOFTWARE_LIFE_CYCLE",
-  "ISO_42001_AI_MANAGEMENT_SYSTEM",
-  "TESTING_SERVICES",
-  "RISK_ASSESSMENT",
-  "BUSINESS_IMPACT_ANALYSIS",
-  "PRIVACY_IMPACT_ANALYSIS",
-  "DATA_ASSURANCE",
-  "AUDIT",
-  "AWARENESS_TRAINING",
-  "TABLETOP_EXERCISE",
-  "OTHER",
-];
+
 
 interface ProjectProposalUploadProps {
   category: string;
@@ -133,14 +115,33 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   const handleShowPreview = (flag: boolean) => {
     setShowPreview(flag);
   };
-  
+  const [services,setServices]=useState([]);
   useEffect(()=>{
     const fetchProposals = async () => {
       const response = await api.get('/api/proposals/getAllProposals');
       console.log(response.data);
       setExistingProposal(response.data.data);
+
+      console.log("Existing proposals:", response.data.data);
+    }
+
+
+    const getServices= async () => {
+
+      try {
+        const response = await api.get('/api/services');
+        if (response.data.success) {
+          console.log("Fetched services:", response.data.data);
+          setServices(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
     }
     fetchProposals();
+    getServices();
+
+     
   },[])
 
   // Keep existing handleFileChange and handleDownload for backwards compatibility, but commented out
@@ -249,9 +250,13 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
     timeline: Array<{ id: number; phase: string; description: string }>;
     deliverables: Array<{ id: number; title: string; description: string }>;
   }) => {
+
+    // console.log("Generating proposal with data:", data);
+    // return;
     try {
       setUploadingService(data.service);
 
+      // console.log("gg",data.service);
       // Get auth token from localStorage if you're using it
       const token = localStorage.getItem("token");
 
@@ -477,18 +482,18 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
 
       <div className="bg-[#1a1f2b] rounded-lg p-4">
         <div className="divide-y divide-gray-700">
-          {SERVICE_TYPES.map((service,index) => (
-            <div key={service} className="flex py-3 first:pt-0 last:pb-0">
+          {services && services.map((service:any,index:number) => (
+            <div key={index} className="flex py-3 first:pt-0 last:pb-0">
               <div className="w-[70%] flex items-center">
                 <span className="text-gray-200">
-                  {formatServiceName(service)}
+                  {formatServiceName(service.name)}
                 </span>
               </div>
               <div className="w-[30%] flex justify-end">
-                {existingProposal[index]?.serviceType === service ? (
+      {existingProposal.find((prop: any) => prop.serviceType === service.name) ? (
                     <button
                     className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                    onClick={() => handleViewProposal(service)}
+                    onClick={() => handleViewProposal(service.name)}
                     disabled={uploadingService !== null}
                   >
                     View Proposal
@@ -496,7 +501,7 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
                 ) : (
                   <button
                     className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                    onClick={() => handleOpenProposalBuilder(service)}
+                    onClick={() => handleOpenProposalBuilder(service.name)}
                     disabled={uploadingService !== null}
                   >
                     Generate Proposal
