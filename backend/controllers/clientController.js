@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
  * @route POST /api/clients
  * @access Public
  */
-export const createClient = async (req, res, next) => {
+  export const createClient = async (req, res, next) => {
   try {
     const { 
       email, 
@@ -20,13 +20,13 @@ export const createClient = async (req, res, next) => {
       organization,
       phoneNumber,
       additionalContact,
-      requestedServices,
+      requestedServices, // Expected format: { connect: [{ id: "service-id" }, ...] }
       discoveryMethod,
       scopingDetails,
       interviewDate,
       interviewTime,
       termsAccepted,
-      // Fields to be stored in otherDetails
+      // Other details fields
       address,
       country,
       state,
@@ -75,7 +75,7 @@ export const createClient = async (req, res, next) => {
         }
       });
 
-      // Prepare otherDetails as JSON string
+      // Prepare otherDetails JSON
       const otherDetailsJson = JSON.stringify({
         address: address || null,
         country: country || null,
@@ -85,10 +85,10 @@ export const createClient = async (req, res, next) => {
         industry: industry || null,
         companySize: companySize || null,
         website: website || null,
-        ...otherDetails && typeof otherDetails === 'object' ? otherDetails : {}
+        ...(otherDetails && typeof otherDetails === 'object' ? otherDetails : {})
       });
 
-      // Create client profile with fields that match schema
+      // Create client profile using the provided requestedServices connect payload
       const clientProfile = await prisma.clientProfile.create({
         data: {
           userId: user.id,
@@ -96,9 +96,7 @@ export const createClient = async (req, res, next) => {
           organization,
           phoneNumber,
           additionalContact: additionalContact || null,
-          requestedServices: {
-          connect: requestedServices?.map(serviceId => ({ id: serviceId })) || []
-    },
+          requestedServices: requestedServices, // For nested connect
           otherDetails: otherDetailsJson,
           discoveryMethod: discoveryMethod || null,
           scopingDetails: scopingDetails || null,
@@ -106,7 +104,7 @@ export const createClient = async (req, res, next) => {
           interviewTime: interviewTime || null,
           termsAccepted: termsAccepted || false,
           currentStep: 0,
-          onboardingStatus: 'NOT_STARTED'
+          onboardingStatus: "NOT_STARTED"
         },
         include: {
           user: {
@@ -119,10 +117,7 @@ export const createClient = async (req, res, next) => {
         }
       });
 
-      return {
-        user: user,
-        clientProfile: clientProfile
-      };
+      return { user, clientProfile };
     });
 
     res.status(201).json({
@@ -130,10 +125,10 @@ export const createClient = async (req, res, next) => {
       data: result
     });
   } catch (error) {
-    console.error('Client creation error:', error);
+    console.error("Client creation error:", error);
     res.status(500).json({
       success: false,
-      error: error.message || 'An error occurred during client creation'
+      error: error.message || "An error occurred during client creation"
     });
   }
 };

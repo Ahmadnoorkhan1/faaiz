@@ -244,7 +244,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
 
     } catch (error: any) {
       console.error('Upload error:', error);
-      alert(`Failed to upload document: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to upload document: ${error.message || 'Unknown error'}`);
     } finally {
       setUploadingService(null);
       if (uploadedServices.has(service)) {

@@ -43,42 +43,43 @@ export function useScopingForm(initialForm?: ScopingForm) {
     setQuestions(prev => questionUtils.moveQuestion(index, direction, prev));
   }, []);
 
-  const saveForm = useCallback(async (service: string, clientId?: string | null) => {
-    if (questions.length === 0) {
-      toast.error('Please add at least one question to the form');
-      return false;
-    }
+ const saveForm = useCallback(async (service: string) => {
+  if (questions.length === 0) {
+    toast.error('Please add at least one question to the form');
+    return false;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      // If initialForm exists, we're updating, otherwise creating
-      const endpoint = initialForm ? '/api/scoping-forms/update' : '/api/scoping-forms/create';
-      
-      const payload = {
-        ...(initialForm?.id ? { id: initialForm.id } : {}),
-        service,
-        questions,
-        createdById: user?.id,
-        clientId: clientId || initialForm?.clientId || null
-      };
-      console.log(payload,' <<< ');
-      const response:any = await api.post(endpoint, payload);
-      console.log(response.data,' <<< ');
-      if (response.data.success) {
-        toast.success(`Scoping form ${initialForm ? 'updated' : 'created'} successfully`);
-        return true;
-      } else {
-        throw new Error(`Failed to ${initialForm ? 'update' : 'create'} scoping form`);
-      }
-    } catch (error: any) {
-      console.error(`Error ${initialForm ? 'updating' : 'creating'} scoping form:`, error);
-      toast.error(`Failed to ${initialForm ? 'update' : 'create'} scoping form: ${error.message}`);
-      return false;
-    } finally {
-      setLoading(false);
+  try {
+    const endpoint = initialForm ? '/api/scoping-forms/update' : '/api/scoping-forms/create';
+    
+    const payload = {
+      ...(initialForm?.id ? { id: initialForm.id } : {}),
+      service, // this will be a string like "SEO", "BRANDING"
+      questions,
+      createdById: user?.id
+    };
+
+    console.log("Sending payload:", payload);
+
+    const response = await api.post(endpoint, payload);
+
+    if (response.data.success) {
+      toast.success(`Scoping form ${initialForm ? 'updated' : 'created'} successfully`);
+      return true;
+    } else {
+      throw new Error(response.data.message || 'Unknown error');
     }
-  }, [questions, initialForm, user?.id]);
+  } catch (error: any) {
+    console.error("Error saving form:", error);
+    toast.error(`Failed to save form: ${error.message}`);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+}, [questions, initialForm, user?.id]);
+
 
   return {
     questions,

@@ -4,39 +4,46 @@ const prisma = new PrismaClient();
 
 export const createScopingFormController = async (req, res) => {
   const { service, questions, createdById } = req.body;
-  console.log({
-    service,
-    questions,
-    createdById
-  })
 
   try {
+    // Find the service by name
+    const foundService = await prisma.service.findUnique({
+      where: { name: service }
+    });
+
+    if (!foundService) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service name"
+      });
+    }
+
     const scopingForm = await prisma.scopingForm.create({
       data: {
-        service,
         questions,
-        // createdById:createdById,
         createdBy: {
-          connect: {
-            id: createdById,
-          },
+          connect: { id: createdById }
         },
-      },
+        service: {
+          connect: { id: foundService.id }
+        }
+      }
     });
 
     return res.status(201).json({
-      success:true,
-      message:"Scoping form created successfully",
+      success: true,
+      message: "Scoping form created successfully",
       scopingForm
     });
   } catch (error) {
     return res.status(500).json({
-      success:false,
-      message:"Error creating scoping form",
-      error:error.message
+      success: false,
+      message: "Error creating scoping form",
+      error: error.message
     });
   }
 };
+
 
 export const getAllScopingFormsController = async (req, res) => {
   try {

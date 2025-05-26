@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, {useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -139,67 +139,84 @@ const ClientOnboarding: React.FC = () => {
     [currentStep, getValues, trigger, isValidating]
   );
 
+  const [serviceList, setServiceList] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Fetch full services on mount:
+  // useEffect(() => {
+  //   const fetchServices = async () => {
+  //     try {
+  //       const response = await api.get("/api/services");
+  //       if (response.data.success) {
+  //         // Assume response.data.data returns an array of service objects with id and name
+  //         setServiceList(response.data.data);
+
+  //         console.log("Fetched services:", response.data.data);
+
+
+  //       } else {
+  //         toast.error("Failed to fetch services");
+  //         console.error("Failed to fetch services:", response.data.message);
+  //       }
+  //     } catch (error) {
+  //       toast.error("Error fetching services");
+  //       console.error(error);
+  //     }
+  //   };
+  //   fetchServices();
+  // }, []);
+
+  // ... rest of your code
+
   const onSubmit: SubmitHandler<ClientFormData> = async (data) => {
     try {
       setLoading(true);
       setProcessingStatus("Creating account...");
-      
-      console.log("Submitting form data:", data);
-      console.log("requestedServices:", data.requestedServices);
 
-      // Create new client profile with all payload data
+      console.log("Submitting form data:", data);
+      console.log("requestedServices (before mapping):", data.requestedServices);
+      
+      // Map service names (from the form) to their corresponding IDs using serviceList
+      const mappedServices = (Array.isArray(data.requestedServices)
+        ? data.requestedServices
+        : [data.requestedServices]
+      ).map((serviceName: string) => {
+        const service = serviceList.find(
+          (s) => s.name.toLowerCase() === serviceName.toLowerCase()
+        );
+        if (!service) {
+          throw new Error(`No service found for: ${serviceName}`);
+        }
+        return { id: service.id };
+      });
+
       const clientResponse = await api.post("/api/clients", {
-        // User fields
         email: data.email,
         password: data.password,
-        
-        // ClientProfile fields
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
         organization: data.organization,
         additionalContact: data.additionalContact || null,
-        
-        // Service information using Prisma connect syntax
-requestedServices: {
-  connect: (Array.isArray(data.requestedServices)
-    ? data.requestedServices
-    : [data.requestedServices]
-  ).map((id: string) => ({ id }))
-},
+        requestedServices: {
+          connect: mappedServices
+        },
         otherDetails: data.otherDetails || null,
-        
-        // Include discovery data with default values
         discoveryMethod: "call",
         scopingDetails: {},
-        
-        // Status fields - set as completed
         currentStep: 0,
         onboardingStatus: "COMPLETED",
       });
 
-      // Extract client data from response
       const responseData = clientResponse.data.data;
-      const clientId = responseData.clientProfile.id;
-      const userId = responseData.user.id;
-      
-
-      console.log("Created client with ID:", clientId);
+      console.log("Created client with ID:", responseData.clientProfile.id);
       setProcessingStatus("Account created successfully!");
-      
-      // Add delay before showing success message
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       toast.success("Account created successfully!");
-
-      // Redirect to login page
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (error: unknown) {
       console.error("Error in onboarding process:", error);
-
-      // Handle error based on its type
       let errorMessage = "Failed to complete onboarding.";
-
       if (error && typeof error === "object") {
         const err = error as Record<string, any>;
         if (err.response?.data?.message) {
@@ -210,12 +227,13 @@ requestedServices: {
           errorMessage += ` ${err.message}`;
         }
       }
-
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+
 
   // Modified handle next button to properly submit form
   const handleNext = useCallback(async () => {
