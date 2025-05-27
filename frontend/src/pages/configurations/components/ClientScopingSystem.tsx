@@ -661,7 +661,6 @@ const ClientScopingSystem: React.FC = () => {
     }
     
     const form = scopingForms[activeService];
-    console.log(form)
     // Parse questions if stored as a string
     const questions = typeof form.questions === 'string'
       ? JSON.parse(form.questions)

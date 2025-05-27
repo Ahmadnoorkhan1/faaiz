@@ -128,14 +128,15 @@ export const documentController = {
 ,async getDocumentsByService(req, res) {
   try {
     const { serviceType } = req.params;
+    console.log(serviceType , ' <<< ');
 
     const whereClause = {
-      service: { name: serviceType },
+      serviceId:  serviceType ,
     };
 
-    if (req.user && req.user.id) {
-      whereClause['uploadedById'] = req.user.id;
-    }
+    // if (req.user && req.user.id) {
+    //   whereClause['uploadedById'] = req.user.id;
+    // }
 
     const documents = await prisma.document.findMany({
       where: whereClause,
@@ -145,8 +146,19 @@ export const documentController = {
       },
       orderBy: { createdAt: 'desc' },
     });
-
-    res.json(documents || []);
+    if(documents.length){
+      res.status(200).json({
+        success:true,
+        message:'Documents fetched successfully',
+        data:documents
+      });
+    }else{
+      res.status(404).json({
+        success:false,
+        message:'Document not found',
+        data:[]
+      })
+    }
   } catch (error) {
     console.error('Error fetching documents by service:', error);
     res.status(500).json({ error: 'Failed to fetch documents' });

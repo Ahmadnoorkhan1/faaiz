@@ -99,14 +99,13 @@ const ClientProfileCompletionWrapper: React.FC = () => {
   const [stepError, setStepError] = useState<string | null>(null);
 
 
-const [proposalData, setProposalData] = useState<ProposalData | null>(null);
+  const [proposalData, setProposalData] = useState<ProposalData | null>(null);
+
+
+
 
   useEffect(() => {
-    if (currentStep === 4 && profileData?.requestedServices?.[0]) {
-      handleGetProposal(profileData.requestedServices[0]);
-    }
-  }, [currentStep, profileData?.requestedServices]);
-
+  if (currentStep === 4 && profileData?.serviceId) {
   const handleGetProposal = async (serviceType: string) => {
     try {
       const response = await api.get(`/api/proposals/getProposal/${serviceType}`);
@@ -128,6 +127,12 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       toast.error('Failed to fetch proposal data');
     }
   };
+    handleGetProposal(profileData.serviceId);
+  }
+  }, [currentStep]);
+
+
+
   // Effect: Update current step based on onboarding status
   useEffect(() => {
     if (profileData && profileData.onboardingStatus) {
@@ -190,6 +195,7 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       }, 500);
     }
   }, [profileData.onboardingStatus]);
+
 
   // Handler Functions
   const handleLogout = useCallback(() => {
@@ -307,8 +313,6 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       toast.error(error.message || 'Failed to accept proposal');
     }
   }, [profileData.id]);
-  // Drawing functions for signature pad
-  
 
   // UI Components
   const OnboardingStepper = () => (
@@ -438,8 +442,8 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
         setScopingError(null);
         
         try {
-          if (profileData?.id && profileData?.requestedServices?.length > 0) {
-            const serviceType = profileData.requestedServices[0];
+          if (profileData?.id && profileData?.serviceId) {
+            const serviceType = profileData.serviceId;
             console.log(`Fetching scoping data for client: ${profileData.id}, service: ${serviceType}`);
             
             const response = await api.get(
@@ -577,7 +581,6 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       </div>
     </div>
   );
-
   const renderAcknowledgement = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-3xl m-4">
@@ -645,7 +648,6 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       </div>
     </div>
   );
-
   const renderNDA = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-3xl m-4">
@@ -662,11 +664,7 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
       </div>
     </div>
   );
-  
   const renderProposal = () => {
-
-  
-
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
         <div className="bg-[#1a1f2b] rounded-xl p-6  max-w-3xl m-4 relative overflow-y-scroll h-[75vh] ">
@@ -677,8 +675,8 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
               <h2 className="text-2xl font-bold text-gray-200 mb-2">Proposal</h2>
             </div>
             <div className="space-y-4">
-              <ProposalPreview name={profileData.fullName} organization={profileData.organization} requestedServices={profileData.requestedServices[0]}
-  proposalData={proposalData || undefined} // Convert null to undefined
+              <ProposalPreview name={profileData.fullName} organization={profileData.organization} requestedServices={profileData.service.name}
+              proposalData={proposalData || undefined} // Convert null to undefined
 
               />
             </div>
@@ -697,12 +695,13 @@ const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const handleSubmit = async () => {
   try {
     toast.loading("Starting project setup...");
-
+    console.log('kia hum yaha hai? 1');
     // Step 1: Create project
-        const serviceType = profileData.requestedServices[0]; // Get service type from profile data
+    const serviceType = profileData.serviceId; // Get service type from profile data
 
-const projectId = await createProject(user.id, profileData.id, serviceType);
+    const projectId = await createProject(user.id, profileData.id, serviceType);
     const userId = user?.id || profileData?.id;
+    console.log('kia hum yaha hai? 2');
 
     toast.success(`Project created: ${projectId}`);
 
@@ -713,11 +712,16 @@ const projectId = await createProject(user.id, profileData.id, serviceType);
       (doc.fileType?.includes("spreadsheet") || doc.fileType?.includes("xlsx")) &&
       doc.fileUrl
     );
+    console.log('kia hum yaha hai? 3');
+
+    toast.loading("Creating Tasks...");
 
     if (!templateDoc) {
       toast.error("No suitable template document found.");
       return;
     }
+    console.log('kia hum yaha hai? 4');
+
 
     // Step 3: Download the file
     const file = await downloadFile(templateDoc.fileUrl);
@@ -726,15 +730,20 @@ const projectId = await createProject(user.id, profileData.id, serviceType);
       return;
     }
 
+    console.log('kia hum yaha hai? 5');
+
+
     // Step 4: Upload to import tasks
    const tasks = await importTasks(file, projectId, userId);
-console.log("Tasks imported:", tasks);
-
-if(tasks.data.tasks){
-  window.location.reload();
-
-}
+   console.log("Tasks imported:", tasks);
+  
+   
     toast.success("Tasks imported successfully!");
+     if(tasks.data.tasks){
+      window.location.reload();
+
+    }
+    console.log('kia hum yaha hai? 6');
 
   } catch (error) {
     console.error("Error during project setup:", error);
@@ -742,7 +751,7 @@ if(tasks.data.tasks){
   } finally {
     toast.dismiss();
   }
-};
+  };
   const renderCompleted = () => (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
       <div className="bg-[#1a1f2b] rounded-xl p-6 w-full max-w-3xl m-4 relative overflow-hidden">
@@ -837,7 +846,6 @@ if(tasks.data.tasks){
       </div>
     </div>
   );
-
   // Loading spinner
   if (loading) {
     return ( 
@@ -849,12 +857,6 @@ if(tasks.data.tasks){
       </div>
     );
   }
-
-  useEffect(()=>{
-    // const 
-  },[])
-
-
   const renderDiscoveryCallPendingModal = () => {
     return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
@@ -890,7 +892,6 @@ if(tasks.data.tasks){
     </div>
     )
   }
-
   const renderSteps = () => {
     switch (currentStep) {
       case 0:
@@ -909,7 +910,6 @@ if(tasks.data.tasks){
         return renderDiscoveryCallPendingModal();
     }
   };
-
   return renderSteps();
 };
 

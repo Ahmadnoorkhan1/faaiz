@@ -35,7 +35,8 @@ const ProposalPreview: React.FC<ProposalPreviewProps> = ({
   requestedServices,
   proposalData,
 }) => {
-
+  console.log(name, organization,requestedServices,proposalData , ' <<<<< ');
+  // return <>FAIZ</>
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 bg-white shadow-lg rounded-lg text-gray-800">
       {/* Heading */}

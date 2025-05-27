@@ -160,7 +160,7 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
     try {
       setSelectedService(service);
       setShowViewProposalModal(true);
-      setSelectedProposal(existingProposal.find((item: any) => item.serviceType === service));
+      setSelectedProposal(existingProposal.find((item: any) => item.service.name === service));
     } catch (error) {
       console.error("Error loading proposal:", error);
     }
@@ -418,9 +418,9 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
                 </span>
               </div>
               <div className="w-[30%] flex justify-end">
-              {existingProposal.find((prop: any) => prop.serviceType === service.name) ? (
+              {existingProposal.find((prop: any) => prop.service.name === service.name) ? (
                     <button
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
                     onClick={() => handleViewProposal(service.name)}
                     disabled={uploadingService !== null}
                   >
@@ -428,7 +428,7 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
                   </button>
                 ) : (
                   <button
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
                     onClick={() => handleOpenProposalBuilder(service.name)}
                     disabled={uploadingService !== null}
                   >

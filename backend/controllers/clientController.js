@@ -539,7 +539,9 @@ export const getClientByUserId = async (req, res) => {
             email: true, 
             role: true 
           } 
-        }
+        },
+        service:true
+
       }
     });
 

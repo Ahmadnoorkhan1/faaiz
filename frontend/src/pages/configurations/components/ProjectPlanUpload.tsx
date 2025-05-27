@@ -190,6 +190,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
     }
 
     try {
+      
       setUploadingService(service);
       
       if (uploadedServices.has(service)) {
@@ -293,8 +294,9 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
     }
   };
 
-  const handleDeleteDocument = async (service: string) => {
-    if (!documents[service]) {
+  const handleDeleteDocument = async (service: any) => {
+    const docId = service.documents[0].id
+    if (!docId) {
       alert('No document found for this service');
       return;
     }
@@ -304,9 +306,8 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
     }
     
     try {
-      const doc = documents[service];
       
-      const response = await api.delete(`/api/documents/${doc.id}`);
+      const response = await api.delete(`/api/documents/${docId}`);
       
       if (response.data?.success === false) {
         throw new Error(response.data?.message || 'Failed to delete document');
@@ -324,10 +325,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         return next;
       });
       
-    toast.success(`Template for ${formatServiceName(service)} deleted successfully`);
+    toast.success(`Template for ${formatServiceName(service.name)} deleted successfully`);
     } catch (err: any) {
       console.error('Error deleting document:', err);
-      alert(`Failed to delete document: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to delete document: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -353,9 +354,9 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {serviceTypes.map((service:any) => (
+          {serviceTypes.map((service:any,index:number) => (
             <div 
-              key={service} 
+              key={index} 
               className="bg-[#242935] rounded-xl overflow-hidden shadow-md transition-all hover:shadow-lg"
             >
               <div className="p-4 border-b border-gray-700">
@@ -368,18 +369,19 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
                 <div className="p-4">
                   <DocumentSkeletonLoader />
                 </div>
-              ) : uploadedServices.has(service) && documents[service] ? (
+              ) : uploadedServices.has(service)  ? (
                 <div className="p-4">
                   <div className="bg-[#1a1f2b] rounded-lg p-3 mb-3">
                     <div className="flex items-start space-x-3">
-                      {getFileIcon(documents[service].fileType)}
+                      {getFileIcon(service.documents[0].fileType)}
                       
                       <div className="flex-1 min-w-0">
-                        <p className="text-gray-200 font-medium truncate" title={documents[service].title}>
-                          {documents[service].title}
+                        <p className="text-gray-200 font-medium truncate">
+                          {/* {documents[service].title} */}
+                          {service.documents[0].title}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          Uploaded by {documents[service].uploadedBy?.email || 'Admin'} • {formatDateTime(documents[service].createdAt)}
+                          Uploaded by Admin • {formatDateTime(service.documents[0].createdAt)}
                         </p>
                       </div>
                     </div>

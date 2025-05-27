@@ -26,7 +26,8 @@ export const createProject = async (userId: string, clientId: string, serviceNam
 // 2. Get documents by service type
 export const getDocumentsByService = async (serviceType: string) => {
   const response = await api.get(`/api/documents/by-service/${serviceType}`);
-  return response.data;
+  
+  return response.data.data;
 };
 
 // 3. Download a file by URL

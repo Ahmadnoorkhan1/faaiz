@@ -28,6 +28,7 @@ export const createScopingFormController = async (req, res) => {
           connect: { id: foundService.id }
         },
         serviceId: foundService.id,
+        
       }
     });
 
@@ -271,10 +272,11 @@ export const getClientScopingFormController = async (req, res) => {
     // Get form template for this service type
     const formTemplate = await prisma.scopingForm.findFirst({
       where: {
-        service: serviceType,
+        serviceId: serviceType,
         clientId: null // Get the template form (not client-specific)
       }
     });
+
     
     if (!formTemplate) {
       return res.status(404).json({
@@ -282,15 +284,20 @@ export const getClientScopingFormController = async (req, res) => {
         message: "Form template not found for this service type"
       });
     }
+
     
     // Check if client has already filled this form - USING USER ID
     const clientForm = await prisma.scopingForm.findFirst({
       where: {
         clientId: userId, // Use User ID instead of ClientProfile ID
-        service: serviceType
+        serviceId: serviceType
+      },
+      include:{
+        service:true,
       }
     });
     
+
     // Extract notes from clientProfile if available
     const scopingDetails = client.scopingDetails 
       ? JSON.parse(client.scopingDetails) 
@@ -301,13 +308,16 @@ export const getClientScopingFormController = async (req, res) => {
       clientId,
       serviceType,
       formId: formTemplate.id,
-      title: `${serviceType.replace(/_/g, ' ')} Scoping Form`,
+      title: `Review Scoping Form`,
       questions: formTemplate.questions,
       answers: clientForm?.answers || {},
       notes: scopingDetails.notes || client.adminReviewNotes || "",
       status: clientForm?.status || 'PENDING',
-      lastUpdated: clientForm?.updatedAt || null
+      lastUpdated: clientForm?.updatedAt || null,
+      service:clientForm.service
     };
+
+
     
     return res.status(200).json({
       success: true,
