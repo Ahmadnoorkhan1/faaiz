@@ -16,12 +16,15 @@ const FormView: React.FC<FormViewProps> = ({
   onBack, 
   onEdit 
 }) => {
+  console.log('am i comign here? 3')
+
+  console.log(selectedForm,' <<<< ?' ,selectedForm, ' <<<< ?');
   return (
     <div>
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-medium text-white py-2">View Scoping Form</h2>
         <p className="text-gray-200">
-          {selectedService.replace(/_/g, ' ')}
+          {selectedService}
         </p>
         <button 
           className="bg-red-400 cursor-pointer text-white h-8 w-8 flex justify-center items-center rounded-full" 

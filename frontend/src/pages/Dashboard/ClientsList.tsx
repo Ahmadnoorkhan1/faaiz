@@ -135,15 +135,8 @@ const ClientsList: React.FC = () => {
       if (response.data.success) {
         // Process clients to handle data format differences
         const processedClients = (response.data.data || []).map(
-          (client: any) => {
+            (client: any) => {
             // Parse requestedServices if it's a string
-            let requestedServices = client.requestedServices || [];
-            if (typeof requestedServices === "string") {
-              // Handle format like "{ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM}"
-              requestedServices = requestedServices
-                .replace(/[{}]/g, "")
-                .split(",");
-            }
 
             // Parse otherDetails if it's a string
             let otherDetails = client.otherDetails;
@@ -173,7 +166,7 @@ const ClientsList: React.FC = () => {
 
             return {
               ...client,
-              requestedServices,
+              
               otherDetails,
               scopingDetails,
               user,

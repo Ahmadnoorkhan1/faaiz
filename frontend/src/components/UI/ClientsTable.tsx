@@ -49,6 +49,7 @@ const ClientsTable = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
 
+
   const handleViewProfile = (data: any) => {
     setProfileData(data);
     setIsModalOpen(true);
@@ -88,18 +89,19 @@ const ClientsTable = ({
     );
   };
 
-  const requestedService = (service: string) => {
+  const requestedService = (service: any) => {
     return (
       <span
         className="block max-w-xs truncate text-gray-200 cursor-default"
-        title={getStatusText(service)}
+        // title={getStatusText(service)}
       >
-        {getStatusText(service)}
+        {service.name}
       </span>
     );
   };
 
   const renderOnboardingStatus = (status: string) => {
+    console.log(status, ' <<<< ???? ');
     return (
       <span
         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-600 w-[125px] overflow-wrap text-center`}
@@ -152,16 +154,16 @@ const ClientsTable = ({
             >
               <span
                 className="block max-w-xs truncate text-gray-200 cursor-default"
-                title={data.user.email}
+                title={data.user?.email}
               >
-                {data.user.email}
+                {data.user?.email}
               </span>
             </td>
           );
         case "requestedServices":
           return (
             <td className="px-6 py-4  text-white" key={column + data.id + key}>
-              {requestedService(data.requestedServices[0])}
+              {requestedService(data.service)}
             </td>
           );
         case "onboardingStatus":
@@ -340,7 +342,7 @@ const ClientsTable = ({
                 {profileData.fullName}
               </h3>
               <div className="mt-2">
-                <StatusBadge status={profileData.onboardingStatus} className="bg-blue-600" />
+                <StatusBadge status={profileData.onboardingStatus} />
               </div>
             </div>
             
@@ -359,7 +361,7 @@ const ClientsTable = ({
               </div>
               <div>
                 <h4 className="text-xs font-medium text-gray-400 uppercase">Services Requested</h4>
-                <p className="text-sm text-gray-200">{formatServiceName(profileData.requestedServices[0])}</p>
+                <p className="text-sm text-gray-200">{formatServiceName(profileData.service.name)}</p>
               </div>
               
             </div>

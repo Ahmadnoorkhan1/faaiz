@@ -10,6 +10,8 @@ interface Client {
   fullName: string;
   organization: string;
   requestedServices: string[];
+  serviceId: string;
+  service:any;
   user: {
     id: string;
     email: string;
@@ -194,36 +196,48 @@ const ClientScopingSystem: React.FC = () => {
     const formsByService: Record<string, ScopingForm> = {};
 
     // Get scoping forms for each of the client's requested services
-    for (const service of selectedClient.requestedServices) {
-      try {
-        const response = await api.post('/api/scoping-forms/get-by-service', {
-          service,
-        });
+    // for (const service of selectedClient.requestedServices) {
+    //   try {
+    //     const response = await api.post('/api/scoping-forms/get-by-service', {
+    //       service,
+    //     });
 
-        // Handle the correct response structure for the provided API response
-        if (response.data.success && Array.isArray(response.data.data) && response.data.data.length > 0) {
-          // The API returns an array of form templates for the service
-          const form = response.data.data[0];
-          // Ensure questions are always an array of objects
-          if (Array.isArray(form.questions)) {
-            formsByService[service] = {
-              ...form,
-              questions: form.questions.map((q: any) => ({
-                id: q.id,
-                text: q.text,
-                type: q.type,
-                required: q.required ?? false,
-                options: q.options ?? [],
-              })),
-            };
-          }
-        }
-      } catch (err) {
-        console.warn(`No scoping form found for service: ${service}`);
+    //     // Handle the correct response structure for the provided API response
+    //     if (response.data.success && Array.isArray(response.data.data) && response.data.data.length > 0) {
+    //       // The API returns an array of form templates for the service
+    //       const form = response.data.data[0];
+    //       // Ensure questions are always an array of objects
+          
+    //     }
+    //   } catch (err) {
+    //     console.warn(`No scoping form found for service: ${service}`);
+    //   }
+    // }
+
+    const serviceId = selectedClient.serviceId;
+    console.log('serviceId :',serviceId)
+    const response = await api.post('/api/scoping-forms/get-by-service', {
+      service:serviceId,
+    });
+    if(response.data.success){
+      const form = response.data.data[0];
+      console.log(formsByService,' <<<< ?')
+      if (Array.isArray(form.questions)) {
+        formsByService[serviceId] = {
+          ...form,
+          questions: form.questions.map((q: any) => ({
+            id: q.id,
+            text: q.text,
+            type: q.type,
+            required: q.required ?? false,
+            options: q.options ?? [],
+          })),
+        };
       }
-    }
 
-    setScopingForms(formsByService);
+      console.log(formsByService,' <<<< ?')
+      setScopingForms(formsByService);
+    }
 
     // Set active service to the first one that has a form
     const serviceWithForm = Object.keys(formsByService)[0];
@@ -647,7 +661,7 @@ const ClientScopingSystem: React.FC = () => {
     }
     
     const form = scopingForms[activeService];
-    
+    console.log(form)
     // Parse questions if stored as a string
     const questions = typeof form.questions === 'string'
       ? JSON.parse(form.questions)
@@ -779,9 +793,7 @@ const ClientScopingSystem: React.FC = () => {
   const renderServiceTabs = () => {
     if (!selectedClient) return null;
     
-    const availableServices = selectedClient.requestedServices.filter(
-      service => scopingForms[service]
-    );
+    const availableServices = selectedClient.service
     
     if (availableServices.length === 0) {
       return (
@@ -794,19 +806,17 @@ const ClientScopingSystem: React.FC = () => {
     return (
       <div className="mb-6 border-b border-gray-700">
         <div className="flex space-x-4 overflow-x-auto pb-1">
-          {availableServices.map(service => (
             <button
-              key={service}
-              onClick={() => setActiveService(service)}
+              key={selectedClient.id}
+              onClick={() => setActiveService(selectedClient.service)}
               className={`px-4 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap
-                ${activeService === service
+                ${activeService === selectedClient.service
                   ? 'bg-[#1a1f2b] text-white border-t border-l border-r border-gray-700'
                   : 'text-gray-400 hover:text-white'
                 }`}
             >
-              {formatServiceName(service)}
+              {formatServiceName(selectedClient.service.name)}
             </button>
-          ))}
         </div>
       </div>
     );

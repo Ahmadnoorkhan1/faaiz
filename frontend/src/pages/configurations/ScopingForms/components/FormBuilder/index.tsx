@@ -57,7 +57,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({
         </h2>
         <div className="flex items-center gap-4">
           <p className="text-gray-200 bg-blue-900/30 px-3 py-1 rounded-full text-sm">
-            {selectedService.replace(/_/g, ' ')}
+            {selectedService}
           </p>
           <button 
             className="bg-red-500 hover:bg-red-600 transition-colors text-white h-8 w-8 flex justify-center items-center rounded-full" 

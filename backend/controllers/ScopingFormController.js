@@ -26,14 +26,26 @@ export const createScopingFormController = async (req, res) => {
         },
         service: {
           connect: { id: foundService.id }
+        },
+        serviceId: foundService.id,
+      }
+    });
+
+    const updatedService = await prisma.service.update({
+      where: { id: foundService.id },
+      data: {
+        scopingForm: {
+          connect: { id: scopingForm.id }
         }
       }
     });
+    
 
     return res.status(201).json({
       success: true,
       message: "Scoping form created successfully",
-      scopingForm
+      scopingForm,
+      updatedService
     });
   } catch (error) {
     return res.status(500).json({
@@ -77,11 +89,11 @@ export const getScopingFormByServiceController = async (req, res) => {
     // Only get template forms (where clientId is null)
     const scopingForms = await prisma.scopingForm.findMany({
       where: { 
-        service,
-        clientId: null // Add this filter to get only templates
+        serviceId:service,
       },
     });
 
+    
     return res.status(200).json({
       success: true,
       message: "Scoping form templates retrieved successfully",
@@ -98,11 +110,24 @@ export const getScopingFormByServiceController = async (req, res) => {
 
 export const updateScopingFormController = async (req, res) => {
   const { id, service, questions, createdById, clientId } = req.body;
-
   try {
+  console.log('did i came here? <<<< ? 1');
+
+    const getTheServiceName = await prisma.service.findUnique({
+      where: { name: service }
+    });
+    console.log('did i came here? <<<< ? 2' );
+
+    if (!getTheServiceName) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service name"
+      });
+    }
+  console.log('did i came here? <<<< ? 3');
     const scopingForm = await prisma.scopingForm.update({
       where: { id },
-      data: { service, questions, createdById, clientId },
+      data: {  questions, createdById, clientId },
     });
 
     return res.status(200).json({
@@ -542,7 +567,7 @@ export const submitClientScopingFormController = async (req, res) => {
       const existingForm = await prisma.scopingForm.findFirst({
         where: {
           clientId: userId, // Use the User ID, not ClientProfile ID
-          service: serviceType
+          serviceId: serviceType
         }
       });
       
@@ -562,7 +587,7 @@ export const submitClientScopingFormController = async (req, res) => {
         // Get form template to get questions structure
         const template = await prisma.scopingForm.findFirst({
           where: {
-            service: serviceType,
+            serviceId: serviceType,
             clientId: null // Template has no client ID
           }
         });
@@ -574,7 +599,7 @@ export const submitClientScopingFormController = async (req, res) => {
         // Create new form - using User ID for clientId
         form = await prisma.scopingForm.create({
           data: {
-            service: serviceType,
+            serviceId: serviceType,
             clientId: userId, // This is now the User ID
             createdById: req.user.id,
             questions: template.questions, 
@@ -592,7 +617,7 @@ export const submitClientScopingFormController = async (req, res) => {
           adminReviewNotes: notes || clientProfile.adminReviewNotes || null,
           // Store additional details in scopingDetails JSON
           scopingDetails: JSON.stringify({
-            service: serviceType,
+            serviceId: serviceType,
             formId: form.id,
             notes: notes || '',
             submittedAt: new Date(),

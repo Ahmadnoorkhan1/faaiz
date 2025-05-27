@@ -43,7 +43,7 @@ const ClientOnboarding: React.FC = () => {
     defaultValues: {
       email: "",
       password: "",
-      requestedServices: [],
+      serviceId: [],
       otherDetails: "",
       fullName: "",
       phoneNumber: "",
@@ -72,7 +72,7 @@ const ClientOnboarding: React.FC = () => {
   const watchedStepFields = watch(currentStepFields as any);
 
   // Specifically watch requestedServices for Step 0
-  const watchedServices = watch("requestedServices");
+  const watchedServices = watch("serviceId");
 
   // Validation function for steps
   const validateCurrentStep = useCallback(
@@ -89,7 +89,7 @@ const ClientOnboarding: React.FC = () => {
 
         // Special case for Step 0 (Service Selection) - check if any services are selected
         if (currentStep === 0) {
-          const services = getValues("requestedServices");
+          const services = getValues("serviceId");
 
           if (services.length === 0) {
             if (showToast) {
@@ -139,7 +139,35 @@ const ClientOnboarding: React.FC = () => {
     [currentStep, getValues, trigger, isValidating]
   );
 
-  const [serviceList, setServiceList] = useState<Array<{ id: string; name: string }>>([]);
+  const [serviceList, setServiceList] = useState<any>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
+  
+  const fetchServices = async () => {
+      try {
+        console.log("Starting to fetch services...");
+        setIsLoadingServices(true);
+        const response:any = await api.get('/api/services')
+        console.log("API response:", response);
+        console.log("Response data:", response.data);
+        
+        if(response.data.success){
+          console.log("Services fetched successfully:", response.data.data);
+          setServiceList(response.data.data)
+        }else{
+          console.error("API returned success=false:", response.data);
+          toast.error("Failed to fetch services")
+        }
+      } catch (error) {
+        console.error("Error in fetchServices:", error);
+        toast.error("Error fetching services");
+      } finally {
+        setIsLoadingServices(false);
+      }
+    }
+  useEffect(()=>{
+    console.log("useEffect triggered - fetching services");
+    fetchServices();
+  },[])
 
   // Fetch full services on mount:
   // useEffect(() => {
@@ -173,22 +201,9 @@ const ClientOnboarding: React.FC = () => {
       setProcessingStatus("Creating account...");
 
       console.log("Submitting form data:", data);
-      console.log("requestedServices (before mapping):", data.requestedServices);
+      console.log("requestedServices (before mapping):", data.serviceId);
       
-      // Map service names (from the form) to their corresponding IDs using serviceList
-      const mappedServices = (Array.isArray(data.requestedServices)
-        ? data.requestedServices
-        : [data.requestedServices]
-      ).map((serviceName: string) => {
-        const service = serviceList.find(
-          (s) => s.name.toLowerCase() === serviceName.toLowerCase()
-        );
-        if (!service) {
-          throw new Error(`No service found for: ${serviceName}`);
-        }
-        return { id: service.id };
-      });
-
+     
       const clientResponse = await api.post("/api/clients", {
         email: data.email,
         password: data.password,
@@ -196,9 +211,7 @@ const ClientOnboarding: React.FC = () => {
         phoneNumber: data.phoneNumber,
         organization: data.organization,
         additionalContact: data.additionalContact || null,
-        requestedServices: {
-          connect: mappedServices
-        },
+        serviceId: data.serviceId, // Use serviceId for one-to-many
         otherDetails: data.otherDetails || null,
         discoveryMethod: "call",
         scopingDetails: {},
@@ -264,7 +277,7 @@ const ClientOnboarding: React.FC = () => {
   const renderStepComponent = useCallback(() => {
     switch (currentStep) {
       case 0:
-        return <BasicInfo />; // Service Selection
+        return <BasicInfo  />; // Service Selection
       case 1:
         // Combined Account & Personal Info step with custom Phone field
         return (

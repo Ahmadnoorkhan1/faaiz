@@ -53,7 +53,6 @@ const { serviceType, phases, timeline, deliverables } = req.body;
     // Create the proposal
     const proposal = await prisma.serviceProposal.create({
       data: {
-        
         serviceId: service.id,
         phases: phases,
         timeline: timeline,
@@ -113,7 +112,7 @@ export const getProposalByService = async (req, res) => {
 // Get All Proposals
 export const getAllProposals = async (req, res) => {
   try {
-    const proposals = await prisma.serviceProposal.findMany();
+    const proposals = await prisma.serviceProposal.findMany({include:{service:true}});
     res.status(200).json({
       success: true,
       data: proposals

@@ -6,28 +6,6 @@ import FormTable from './components/FormTable';
 import FormBuilder from './components/FormBuilder';
 import FormView from './components/FormView';
 
-// const SERVICE_OPTIONS = [
-//   'ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM',
-//   'ISO_27701_PRIVACY_INFORMATION_MANAGEMENT_SYSTEM',
-//   'ISO_22301_BUSINESS_CONTINUITY_MANAGEMENT_SYSTEM',
-//   'ISO_27017_CLOUD_SECURITY_CONTROLS',
-//   'ISO_27018_PII_PROTECTION_IN_PUBLIC_CLOUD',
-//   'ISO_20000_SERVICE_MANAGEMENT',
-//   'ISO_12207_SOFTWARE_LIFE_CYCLE',
-//   'ISO_42001_AI_MANAGEMENT_SYSTEM',
-//   'TESTING_SERVICES',
-//   'RISK_ASSESSMENT',
-//   'BUSINESS_IMPACT_ANALYSIS',
-//   'PRIVACY_IMPACT_ANALYSIS',
-//   'DATA_ASSURANCE',
-//   'AUDIT',
-//   'AWARENESS_TRAINING',
-//   'TABLETOP_EXERCISE',
-//   'OTHER',
-// ];
-
-
-//getServices
 
 
 //endpoint to get SERVICE_OPTIONS
@@ -35,11 +13,10 @@ import FormView from './components/FormView';
 
   const ScopingForms: React.FC = () => {
   const [viewMode, setViewMode] = useState<FormViewMode>('Table');
-  const [scopingForms, setScopingForms] = useState<ScopingForm[]>([]);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedForm, setSelectedForm] = useState<ScopingForm | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
- const [services,setServices]=useState([]);
+  const [services,setServices]=useState<any>([]);
 
  
  useEffect(() => {
@@ -48,9 +25,8 @@ import FormView from './components/FormView';
       const response = await api.get('/api/services');
       if (response.data.success) {
         // Transform the fetched service objects into an array of service names:
-        const serviceNames = response.data.data.map((service: any) => service.name);
-        setServices(serviceNames);
-        console.log("Fe:", serviceNames);
+        const servicesList = response.data.data.map((service: any) => service);
+        setServices(servicesList);
       } else {
         toast.error('Failed to fetch services');
       }
@@ -63,37 +39,21 @@ import FormView from './components/FormView';
 }, []);
 
  
-  useEffect(() => {
-    fetchAllScopingForms();
-  }, []);
+  
 
-  const fetchAllScopingForms = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/scoping-forms/get-all');
-      setScopingForms(response.data);
-    } catch (error) {
-      toast.error('Error fetching scoping forms');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleViewForm = (service: string) => {
-    const form = scopingForms.find(form => form.service === service);
-    if (form) {
-      setSelectedService(service);
-      setSelectedForm(form);
+  const handleViewForm = (service: any) => {
+      console.log('am i comign here? 1',service)
+      setSelectedService(service.name);
+      setSelectedForm(service.scopingForm);
       setViewMode('View');
-    } else {
-      toast.error('Form not found');
-    }
+      console.log('am i comign here? 2')
+
+   
   };
 
-  const handleAddForm = (service: string) => {
-    setSelectedService(service);
-    setSelectedForm(null);
+  const handleAddForm = (service: any) => {
+    setSelectedService(service.name);
+    setSelectedForm(service);
     setViewMode('Add');
   };
 
@@ -102,7 +62,6 @@ import FormView from './components/FormView';
     setSelectedService('');
     setSelectedForm(null);
     // Refresh the forms list when returning to the table
-    fetchAllScopingForms();
   };
 
   const handleSwitchToEdit = () => {
@@ -118,7 +77,6 @@ import FormView from './components/FormView';
       case 'Table':
         return (
           <FormTable 
-            scopingForms={scopingForms}
             serviceOptions={services}
             onViewForm={handleViewForm}
             onAddForm={handleAddForm}
@@ -129,19 +87,20 @@ import FormView from './components/FormView';
         return (
           <FormBuilder 
             selectedService={selectedService}
+            selectedForm={selectedForm as ScopingForm}
             onBack={handleBackToTable}
           />
         );
       
       case 'View':
-        return selectedForm ? (
+        return  (
           <FormView 
             selectedService={selectedService}
-            selectedForm={selectedForm}
+            selectedForm={selectedForm as ScopingForm}
             onBack={handleBackToTable}
             onEdit={handleSwitchToEdit}
           />
-        ) : null;
+        )
       
       case 'Edit':
         return selectedForm ? (

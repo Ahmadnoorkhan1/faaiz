@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
  * @route POST /api/clients
  * @access Public
  */
-  export const createClient = async (req, res, next) => {
+export const createClient = async (req, res, next) => {
   try {
     const { 
       email, 
@@ -20,7 +20,7 @@ const prisma = new PrismaClient();
       organization,
       phoneNumber,
       additionalContact,
-      requestedServices, // Expected format: { connect: [{ id: "service-id" }, ...] }
+      serviceId, // Expect serviceId in the request body
       discoveryMethod,
       scopingDetails,
       interviewDate,
@@ -48,17 +48,27 @@ const prisma = new PrismaClient();
     }
 
     // Validate required fields
-    if (!email || !password || !fullName || !phoneNumber || !organization) {
+    if (!email || !password || !fullName || !phoneNumber || !organization || !serviceId) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, fullName, phoneNumber and organization are required'
+        message: 'Email, password, fullName, phoneNumber, organization, and serviceId are required'
       });
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
+    const mappedServiceId = await Promise.all(serviceId.map(async (service) => {
+      const services = await prisma.service.findUnique({
+        where: {
+          name: service
+        }
+      })
+      return services.id
+    }))
+    console.log("**********")
+    console.log(mappedServiceId[0])
+    console.log("**********")
     // Create user and client profile in a transaction
     const result = await prisma.$transaction(async (prisma) => {
       // Create user with CLIENT role
@@ -88,7 +98,7 @@ const prisma = new PrismaClient();
         ...(otherDetails && typeof otherDetails === 'object' ? otherDetails : {})
       });
 
-      // Create client profile using the provided requestedServices connect payload
+      // Create client profile using the provided serviceId
       const clientProfile = await prisma.clientProfile.create({
         data: {
           userId: user.id,
@@ -96,7 +106,7 @@ const prisma = new PrismaClient();
           organization,
           phoneNumber,
           additionalContact: additionalContact || null,
-          requestedServices: requestedServices, // For nested connect
+          serviceId: mappedServiceId[0], // Assign the selected service
           otherDetails: otherDetailsJson,
           discoveryMethod: discoveryMethod || null,
           scopingDetails: scopingDetails || null,
@@ -141,7 +151,7 @@ const prisma = new PrismaClient();
 export const getClients = async (req, res, next) => {
   try {
     const clientProfile = await prisma.clientProfile.findMany({
-        include: { user: { select: { id: true, email: true, role: true } } },
+        include: { user: { select: { id: true, email: true, role: true } }, service:true },
         orderBy: { createdAt: 'desc' }
       });
     

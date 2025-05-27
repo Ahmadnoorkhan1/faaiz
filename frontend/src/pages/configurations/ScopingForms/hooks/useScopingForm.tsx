@@ -5,7 +5,7 @@ import api from '../../../../service/apiService';
 import { useAuth } from '../../../../utils/AuthContext';
 import { toast } from 'react-hot-toast';
 
-export function useScopingForm(initialForm?: ScopingForm) {
+export function useScopingForm(initialForm?: any) {
   const [questions, setQuestions] = useState<Question[]>(initialForm?.questions || []);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -50,9 +50,8 @@ export function useScopingForm(initialForm?: ScopingForm) {
   }
 
   setLoading(true);
-
   try {
-    const endpoint = initialForm ? '/api/scoping-forms/update' : '/api/scoping-forms/create';
+    const endpoint = initialForm.scopingForm ? '/api/scoping-forms/update' : '/api/scoping-forms/create';
     
     const payload = {
       ...(initialForm?.id ? { id: initialForm.id } : {}),

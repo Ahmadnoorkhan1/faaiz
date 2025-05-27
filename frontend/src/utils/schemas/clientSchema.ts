@@ -26,7 +26,7 @@ export const clientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   
   // Step 1: Basic Info
-  requestedServices: z.array(z.string()).min(1, "Please select at least one service"),
+  serviceId: z.array(z.string()).min(1, "Please select at least one service"),
   otherDetails: z.string().optional(),
   
   // Step 2: Personal Info
@@ -49,5 +49,4 @@ export const clientSchema = z.object({
   }),
 });
 
-export type ClientFormData = z.infer<typeof clientSchema>;
-export type ServiceTypeEnum = z.infer<typeof ServiceType>; 
+export type ClientFormData = z.infer<typeof clientSchema>; 

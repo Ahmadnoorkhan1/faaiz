@@ -53,14 +53,17 @@ enum ConsultantStatus {
 model Service {
   id          String   @id @default(uuid())
   name        String   @unique
-  
-  // Relations with all models that previously used ServiceType
+
+  scopingForm       ScopingForm?      @relation(fields: [scopingFormId], references: [id])
+  scopingFormId     String? @unique
+
+  serviceProposal   ServiceProposal?  @relation(fields: [serviceProposalId], references: [id])
+  serviceProposalId String? @unique
+
   clientProfiles     ClientProfile[]      // Many-to-many with ClientProfile
   consultantProfiles ConsultantProfile[]  // Many-to-many with ConsultantProfile
   documents          Document[]           // One-to-many with Document
-  scopingForms       ScopingForm[]       // One-to-many with ScopingForm
-  serviceProposals   ServiceProposal[]   // One-to-many with ServiceProposal
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -168,7 +171,6 @@ model ClientProfile {
   organization      String
   additionalContact String?
 
-  requestedServices Service[]
   otherDetails      String?
 
   // Discovery Call fields
@@ -199,6 +201,10 @@ model ClientProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Service (one-to-many)
+  service   Service  @relation(fields : [serviceId], references: [id], onDelete: Cascade)
+  serviceId String
 }
 
 model ConsultantProfile {
@@ -472,7 +478,7 @@ model EventAttendee {
 
 model ScopingForm{
   id          String   @id @default(uuid())
-  service     Service? @relation(fields: [serviceId], references: [id])
+  service     Service? @relation
   serviceId   String?
   
   // Store questions and options as JSON arrays
@@ -498,7 +504,7 @@ model ScopingForm{
 
 model ServiceProposal {
   id           String      @id @default(uuid())
-  service      Service  @relation(fields: [serviceId], references: [id])
+  service      Service?    @relation
   serviceId    String
   phases       Json        
   timeline     Json        

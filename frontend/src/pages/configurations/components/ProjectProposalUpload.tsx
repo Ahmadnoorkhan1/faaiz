@@ -119,7 +119,6 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
   useEffect(()=>{
     const fetchProposals = async () => {
       const response = await api.get('/api/proposals/getAllProposals');
-      console.log(response.data);
       setExistingProposal(response.data.data);
 
       console.log("Existing proposals:", response.data.data);
@@ -144,78 +143,7 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
      
   },[])
 
-  // Keep existing handleFileChange and handleDownload for backwards compatibility, but commented out
-  /* 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, service: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingService(service);
-      await onUpload(service, file);
-      setUploadedServices(prev => new Set(prev).add(service));
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setUploadingService(null);
-      // Reset the file input
-      e.target.value = '';
-    }
-  };
-  */
-
-  // const handleDownload = async (service: string) => {
-  //   try {
-  //     setDownloadingService(service);
-
-  //     // Find the configuration item for this service
-  //     const configItem = configurations[0].value;
-  //     if (!configItem) return;
-
-  //     // Implement download functionality
-  //     const response = await api.get(`/api/documents/download/${service}`, {
-  //       responseType: 'blob'
-  //     });
-
-  //     // Create a temporary link to download the file
-  //     const url = window.URL.createObjectURL(new Blob([response.data]));
-  //     const link = document.createElement('a');
-  //     link.href = url;
-  //     link.setAttribute('download', configItem); // Use the filename stored in value
-  //     document.body.appendChild(link);
-  //     link.click();
-
-  //     // Cleanup
-  //     link.parentNode?.removeChild(link);
-  //     window.URL.revokeObjectURL(url);
-  //   } catch (err) {
-  //     console.error('Error downloading document:', err);
-  //     alert('Failed to download document. Please try again.');
-  //   } finally {
-  //     setDownloadingService(null);
-  //   }
-  // };
-
-  // useEffect(()=>{
-  //   // Fetch proposal data when the component mounts
-  //   const fetchProposalData = async () => {
-  //     try {
-  //       const response = await api.get('/api/proposals/getProposal/ISO_27001_INFORMATION_SECURITY_MANAGEMENT_SYSTEM');
-  //       if (response.data) {
-  //         setProposalData({
-  //           approachPhases: response.data.approachPhases,
-  //           timeline: response.data.timeline,
-  //           deliverables: response.data.deliverables
-  //         });
-  //       }
-  //       fetchProposalData();
-  //     } catch (error) {
-  //       console.error('Error fetching initial proposal data:', error);
-  //     }
-  //   };
-
-  //   fetchProposalData();
-  // },[])
+ 
 
   // Modify the handleOpenProposalBuilder function to fetch data
   const handleOpenProposalBuilder = async (service: string) => {
@@ -490,7 +418,7 @@ const ProjectProposalUpload: React.FC<ProjectProposalUploadProps> = ({
                 </span>
               </div>
               <div className="w-[30%] flex justify-end">
-      {existingProposal.find((prop: any) => prop.serviceType === service.name) ? (
+              {existingProposal.find((prop: any) => prop.serviceType === service.name) ? (
                     <button
                     className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                     onClick={() => handleViewProposal(service.name)}

@@ -9,6 +9,13 @@ const prisma = new PrismaClient();
 export const getAllServices = async (req, res) => {
   try {
     const services = await prisma.service.findMany({
+      include: {
+        scopingForm: true,        // ✅ one-to-one
+        serviceProposal: true,    // (optional) if you want to include the proposal as well
+        clientProfiles: true,     // (optional) if you want to include clients
+        consultantProfiles: true, // (optional)
+        documents: true           // (optional)
+      },
       orderBy: {
         name: 'asc'
       }
@@ -65,3 +72,28 @@ export const createService = async (req, res) => {
     });
   }
 };
+
+
+// Get service by id
+export const getServiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const service = await prisma.service.findUnique({
+      where: { id }
+    });
+    res.status(200).json({
+      success: true,
+      data: service
+    });
+  } catch (error) {
+    console.error('Error fetching service:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching service',
+      error: error.message
+    });
+  }
+};
+
+
+// Get service by name
