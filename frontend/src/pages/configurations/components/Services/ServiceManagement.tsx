@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import api from '../../../../service/apiService';
+import toast from 'react-hot-toast';
 export interface Service {
   id: string;
   name: string;
@@ -51,9 +52,12 @@ const ServiceManagement: React.FC = () => {
         setServices([...services, response.data.data]);
         // Reset form
         setNewService({ name: '', description: '', category: '' });
+        toast.success('Service Created Successfully');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create service');
+      toast.error('Something went wrong')
+      
     }
   };
 
@@ -144,6 +148,7 @@ const ServiceManagement: React.FC = () => {
               <p className="text-gray-600 text-xs mt-2">
                 Created: {new Date(service.createdAt).toLocaleDateString()}
               </p>
+            
             </div>
           ))}
         </div>

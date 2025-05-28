@@ -3,6 +3,7 @@ import api from '../../../service/apiService';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../../utils/AuthContext';
 import { AnyZodObject } from 'zod';
+import { formatServiceName } from './ProjectProposalUpload';
 
 interface ConfigItem {
   id: string;
@@ -93,7 +94,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
         for (const serviceType of serviceTypes as any) {
           try {
             setLoadingServices(prev => ({ ...prev, [serviceType]: true }));
-            const response = await api.get(`/api/documents/by-service/${serviceType.name}`);
+            const response = await api.get(`/api/documents/by-service/${serviceType.id}`);
             
             if (response.data?.success === false) {
               throw new Error(response.data?.message || `Failed to fetch documents for ${serviceType}`);
@@ -128,14 +129,6 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
     }
   }, [serviceTypes]);
 
-  const formatServiceName = (name: string) => {
-    return name
-      .replace(/_/g, ' ')
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   const formatDateTime = (dateTimeStr: string) => {
     const date = new Date(dateTimeStr);
@@ -204,7 +197,7 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
       formData.append('documentType', 'ProjectPlan');
       formData.append('userId',user.id);
       
-      const response = await api.post(`/api/documents/upload`, formData, {
+      const response:any = await api.post(`/api/documents/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -217,11 +210,10 @@ const ProjectPlanUpload: React.FC<ProjectPlanUploadProps> = ({
       setUploadedServices(prev => new Set([...prev, service]));
       
       let uploadedDoc = null;
-      if (Array.isArray(response.data)) {
-        uploadedDoc = response.data[0];
-      } else if (response.data?.data) {
-        uploadedDoc = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;
-      }
+      if (response.data) {
+        uploadedDoc = response.data.fileUrl;
+      } 
+      
       
       if (uploadedDoc) {
         setDocuments(prev => ({ ...prev, [service]: uploadedDoc }));
