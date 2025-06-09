@@ -91,8 +91,8 @@ const RoleManagement: React.FC = () => {
       }
       
       // Process permissions - updated to match actual structure
-      if (permissionsResponse?.data?.success) {
-        setPermissionCategories(permissionsResponse.data.data || []);
+      if (permissionsResponse?.data) {
+        setPermissionCategories(permissionsResponse.data || []);
       } else {
         console.warn('Permissions API returned unexpected format:', permissionsResponse);
         setPermissionCategories([]);
