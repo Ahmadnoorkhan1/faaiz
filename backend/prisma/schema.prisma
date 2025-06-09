@@ -343,6 +343,15 @@ model RoleDefinition {
   updatedAt DateTime @updatedAt
 }
 
+model Permission {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String?
+  type        String        // The category of permission (e.g., "users", "projects", etc.)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
 
 model UserRoleAssignment {
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)

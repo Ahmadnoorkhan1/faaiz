@@ -1,16 +1,30 @@
 import express from 'express';
-import { getPermissions, getPermissionById, createPermission, updatePermission, deletePermission } from '../controllers/permissionController.js';
-import { authorize, hasPermission } from '../middlewares/auth.js';
+import { authenticateToken, authorize } from '../middlewares/auth.js';
+import {
+  getAvailablePermissions,
+  getAllUsers,
+  getUserPermissions,
+  updateUserPermissions,
+  clearUserPermissions,
+  getPermissions
+} from '../controllers/permissionController.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/', getPermissions);
-router.get('/:id', getPermissionById);
+// Protect all routes with authentication middleware
+router.use(authenticateToken);
 
-// Protected admin-only routes
-router.post('/', authorize, hasPermission, createPermission);
-router.put('/:id', authorize, hasPermission, updatePermission);
-router.delete('/:id', authorize, hasPermission, deletePermission);
+router.get('/', getPermissions);
+
+
+// Fix the routing order issue - specific routes first
+// Available permissions structure
+router.get('/available', authorize('ADMIN'), getAvailablePermissions);
+
+// User permission management routes
+router.get('/users', authorize('ADMIN'), getAllUsers);
+router.get('/users/:userId/permissions', authorize('ADMIN'), getUserPermissions);
+router.post('/users/:userId/update', authorize('ADMIN'), updateUserPermissions);
+router.delete('/users/:userId/permissions', authorize('ADMIN'), clearUserPermissions);
 
 export default router;

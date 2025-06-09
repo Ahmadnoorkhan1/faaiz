@@ -11,11 +11,7 @@ export const getAllRoles = async (req, res, next) => {
   try {
     const roles = await prisma.roleDefinition.findMany({
       include: {
-        permissions: {
-          include: {
-            permission: true
-          }
-        }
+        users: true  // You can only include relations
       }
     });
     
@@ -41,11 +37,7 @@ export const getRoleById = async (req, res, next) => {
     const role = await prisma.roleDefinition.findUnique({
       where: { id },
       include: {
-        permissions: {
-          include: {
-            permission: true
-          }
-        }
+        users: true  // You can only include relations
       }
     });
     
@@ -72,7 +64,7 @@ export const getRoleById = async (req, res, next) => {
  */
 export const createRole = async (req, res, next) => {
   try {
-    const { name, description, permissionIds } = req.body;
+    const { name, description } = req.body;
     
     // Check if role with same name already exists
     const existingRole = await prisma.roleDefinition.findUnique({
@@ -96,30 +88,12 @@ export const createRole = async (req, res, next) => {
         }
       });
       
-      // Assign permissions if provided
-      if (permissionIds && permissionIds.length > 0) {
-        await Promise.all(
-          permissionIds.map(permissionId => 
-            prisma.rolePermission.create({
-              data: {
-                roleId: newRole.id,
-                permissionId
-              }
-            })
-          )
-        );
-      }
       
+       
       // Return the created role with permissions
       return prisma.roleDefinition.findUnique({
         where: { id: newRole.id },
-        include: {
-          permissions: {
-            include: {
-              permission: true
-            }
-          }
-        }
+        
       });
     });
     
