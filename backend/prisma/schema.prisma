@@ -329,18 +329,17 @@ model SubPhase {
 }
 
 model Permission {
-  id          String         @id @default(uuid())
-  name        String         @unique
+  id          String            @id @default(uuid())
+  name        String            @unique
   description String?
-  type        PermissionType
-  resource    String // e.g., "projects", "clients", "consultants"
 
-  // Relations
-  roles RolePermission[]
+  // Correct: no `?` on list
+  roles       RolePermission[] 
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
+
 
 model RoleDefinition {
   id          String  @id @default(uuid())
