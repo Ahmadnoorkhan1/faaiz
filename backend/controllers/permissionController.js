@@ -11,7 +11,6 @@ export const getPermissions = async (req, res) => {
   try {
     const permissions = await prisma.permission.findMany({
       orderBy: [
-        { resource: 'asc' },
         { name: 'asc' }
       ]
     });

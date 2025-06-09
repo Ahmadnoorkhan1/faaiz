@@ -328,17 +328,6 @@ model SubPhase {
   updatedAt   DateTime   @updatedAt
 }
 
-model Permission {
-  id          String            @id @default(uuid())
-  name        String            @unique
-  description String?
-
-  // Correct: no `?` on list
-  roles       RolePermission[] 
-
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-}
 
 
 model RoleDefinition {
@@ -347,21 +336,13 @@ model RoleDefinition {
   description String?
 
   // Relations
-  permissions RolePermission[]
+  permissions String[]
   users       UserRoleAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model RolePermission {
-  role         RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId       String
-  permission   Permission     @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  permissionId String
-
-  @@id([roleId, permissionId])
-}
 
 model UserRoleAssignment {
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
