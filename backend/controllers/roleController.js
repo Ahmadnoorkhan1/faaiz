@@ -1,9 +1,9 @@
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
-const prisma = new PrismaClient();
+const prisma = new PrismaClient(); 
 
-/**
- * Get all roles
+/** 
+ * Get all roles  
  * @route GET /api/roles
  * @access Private/Admin
  */
@@ -64,7 +64,7 @@ export const getRoleById = async (req, res, next) => {
  */
 export const createRole = async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, permissions } = req.body;
     
     // Check if role with same name already exists
     const existingRole = await prisma.roleDefinition.findUnique({
@@ -78,30 +78,21 @@ export const createRole = async (req, res, next) => {
       });
     }
     
-    // Create role and assign permissions
-    const role = await prisma.$transaction(async (prisma) => {
-      // Create the role
-      const newRole = await prisma.roleDefinition.create({
-        data: {
-          name,
-          description
-        }
-      });
-      
-      
-       
-      // Return the created role with permissions
-      return prisma.roleDefinition.findUnique({
-        where: { id: newRole.id },
-        
-      });
+    // Create role with permissions directly included
+    const newRole = await prisma.roleDefinition.create({
+      data: {
+        name,
+        description,
+        permissions: permissions || [] // Include permissions directly
+      }
     });
     
     res.status(201).json({
       success: true,
-      data: role
+      data: newRole
     });
   } catch (error) {
+    console.error('Error creating role:', error);
     next(error);
   }
 };
@@ -114,7 +105,7 @@ export const createRole = async (req, res, next) => {
 export const updateRole = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, permissionIds } = req.body;
+    const { name, description, permissions } = req.body;
     
     // Check if role exists
     const existingRole = await prisma.roleDefinition.findUnique({
@@ -128,61 +119,24 @@ export const updateRole = async (req, res, next) => {
       });
     }
     
-    // Update role and permissions
-    const role = await prisma.$transaction(async (prisma) => {
-      // Update basic role info
-      const updatedRole = await prisma.roleDefinition.update({
-        where: { id },
-        data: {
-          name: name || undefined,
-          description: description !== undefined ? description : undefined
-        }
-      });
-      
-      // If permissions are provided, update them
-      if (permissionIds) {
-        // First, remove existing permissions
-        await prisma.rolePermission.deleteMany({
-          where: { roleId: id }
-        });
-        
-        // Then add new permissions
-        if (permissionIds.length > 0) {
-          await Promise.all(
-            permissionIds.map(permissionId => 
-              prisma.rolePermission.create({
-                data: {
-                  roleId: id,
-                  permissionId
-                }
-              })
-            )
-          );
-        }
+    // Update role with permissions
+    const updatedRole = await prisma.roleDefinition.update({
+      where: { id },
+      data: {
+        name: name || undefined,
+        description: description !== undefined ? description : undefined,
+        permissions: permissions !== undefined ? permissions : undefined
       }
-      
-      // Return updated role with permissions
-      return prisma.roleDefinition.findUnique({
-        where: { id },
-        include: {
-          permissions: {
-            include: {
-              permission: true
-            }
-          }
-        }
-      });
     });
     
     res.status(200).json({
       success: true,
-      data: role
+      data: updatedRole
     });
   } catch (error) {
     next(error);
   }
 };
-
 /**
  * Delete a role
  * @route DELETE /api/roles/:id
@@ -447,15 +401,7 @@ export const getUserRoles = async (req, res, next) => {
     const userRoles = await prisma.userRoleAssignment.findMany({
       where: { userId },
       include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true
-              }
-            }
-          }
-        }
+        role: true // Just include the whole role, which contains permissions
       }
     });
     

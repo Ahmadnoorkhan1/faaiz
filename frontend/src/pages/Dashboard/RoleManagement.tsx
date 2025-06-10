@@ -33,6 +33,19 @@ interface User {
   roles: string[];
 }
 
+// Interface for role assignment response
+interface RoleAssignment {
+  userId: string;
+  roleId: string;
+  createdAt: string;
+  updatedAt: string;
+  role: Role;
+  user?: {
+    id: string;
+    email: string;
+  };
+}
+
 const RoleManagement: React.FC = () => {
   // State declarations
   const [creatingRole, setCreatingRole] = useState(false);
@@ -76,25 +89,32 @@ const RoleManagement: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch roles, permissions, and users
-      const [rolesResponse, permissionsResponse] = await Promise.all([
-        get('/api/roles'),
-        get('/api/permissions/available'),
-      ]) as any;
-      
-      // Process roles
-      if (rolesResponse?.data) {
-        setRoles(rolesResponse.data || []);
-      } else {
-        console.warn('Roles API returned unexpected format:', rolesResponse);
+      // Fetch roles and permissions
+      try {
+        const rolesResponse = await api.get('/api/roles');
+        if (rolesResponse?.data?.success) {
+          setRoles(rolesResponse.data.data || []);
+        } else {
+          console.warn('Roles API returned unexpected format:', rolesResponse);
+          setRoles([]);
+        }
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+        toast.error('Failed to fetch roles');
         setRoles([]);
       }
       
-      // Process permissions - updated to match actual structure
-      if (permissionsResponse?.data) {
-        setPermissionCategories(permissionsResponse.data || []);
-      } else {
-        console.warn('Permissions API returned unexpected format:', permissionsResponse);
+      try {
+        const permissionsResponse = await api.get('/api/permissions/available');
+        if (permissionsResponse?.data?.success) {
+          setPermissionCategories(permissionsResponse.data.data || []);
+        } else {
+          console.warn('Permissions API returned unexpected format:', permissionsResponse);
+          setPermissionCategories([]);
+        }
+      } catch (error) {
+        console.error('Error fetching permissions:', error);
+        toast.error('Failed to fetch permissions');
         setPermissionCategories([]);
       }
 
@@ -116,7 +136,7 @@ const RoleManagement: React.FC = () => {
     try {
       const response = await api.get('/api/permissions/users');
       
-      if (response.data?.success) {
+      if (response?.data?.success) {
         const userData = response.data.data || [];
         setUsers(userData);
         setFilteredUsers(userData);
@@ -129,11 +149,6 @@ const RoleManagement: React.FC = () => {
     }
   };
 
-  // Get flat list of all available permissions
-  const getAllPermissions = (): string[] => {
-    return permissionCategories.flatMap(category => category.permission);
-  };
-
   const handleUserSelect = async (user: User) => {
     if (hasChanges && !window.confirm('You have unsaved changes. Discard them?')) {
       return;
@@ -144,11 +159,11 @@ const RoleManagement: React.FC = () => {
       setSelectedUser(user);
       
       // Fetch user's current roles
-      const response = await get(`/api/roles/users/${user.id}/roles`) as any;
+      const response = await api.get(`/api/roles/users/${user.id}/roles`);
       
       if (response?.data?.success) {
-        // Extract role IDs
-        const userRoleIds = response.data.data.map((roleAssignment: any) => roleAssignment.role.id);
+        // The getUserRoles endpoint returns an array of role assignments
+        const userRoleIds = response.data.data.map((roleAssignment: RoleAssignment) => roleAssignment.role.id);
         setSelectedRoles(userRoleIds);
         setHasChanges(false);
       } else {
@@ -180,14 +195,15 @@ const RoleManagement: React.FC = () => {
 
     try {
       setSavingRoles(true);
+      toast.loading('Saving role assignments...');
       
       // Get current role assignments
-      const currentRolesResponse = await get(`/api/roles/users/${selectedUser.id}/roles`) as any;
-      const currentRoleIds = currentRolesResponse?.data?.data?.map((item: any) => item.role.id) || [];
+      const currentRolesResponse = await api.get(`/api/roles/users/${selectedUser.id}/roles`);
+      const currentRoleIds = currentRolesResponse?.data?.data?.map((item: RoleAssignment) => item.role.id) || [];
       
       // Determine roles to add and remove
       const rolesToAdd = selectedRoles.filter(roleId => !currentRoleIds.includes(roleId));
-      const rolesToRemove = currentRoleIds.filter((roleId:any) => !selectedRoles.includes(roleId));
+      const rolesToRemove = currentRoleIds.filter(roleId => !selectedRoles.includes(roleId));
       
       // Process role changes
       let successCount = 0;
@@ -195,8 +211,14 @@ const RoleManagement: React.FC = () => {
       // Add new roles
       for (const roleId of rolesToAdd) {
         try {
-          await post('/api/roles/assign', { userId: selectedUser.id, roleId });
-          successCount++;
+          const response = await api.post('/api/roles/assign', { 
+            userId: selectedUser.id, 
+            roleId 
+          });
+          
+          if (response.data?.success) {
+            successCount++;
+          }
         } catch (error) {
           console.error(`Error assigning role ${roleId}:`, error);
         }
@@ -205,25 +227,49 @@ const RoleManagement: React.FC = () => {
       // Remove roles
       for (const roleId of rolesToRemove) {
         try {
-          await post('/api/roles/remove', { userId: selectedUser.id, roleId });
-          successCount++;
+          const response = await api.post('/api/roles/remove', { 
+            userId: selectedUser.id, 
+            roleId 
+          });
+          
+          if (response.data?.success) {
+            successCount++;
+          }
         } catch (error) {
           console.error(`Error removing role ${roleId}:`, error);
         }
       }
       
+      toast.dismiss();
+      
       // Success feedback
       if (successCount === rolesToAdd.length + rolesToRemove.length) {
         toast.success(`Updated roles for ${selectedUser.email}`);
+        
+        // Update the user's roles in the local state
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === selectedUser.id 
+              ? { ...user, roles: selectedRoles.map(id => {
+                  const role = roles.find(r => r.id === id);
+                  return role ? role.name : '';
+                }).filter(Boolean) }
+              : user
+          )
+        );
       } else {
-        console.warn(`Updated ${successCount} out of ${rolesToAdd.length + rolesToRemove.length} role changes`);
+        toast.warning(`Updated ${successCount} out of ${rolesToAdd.length + rolesToRemove.length} role changes`);
       }
       
       setHasChanges(false);
       
-      // Refresh user list to reflect role changes
-      fetchUsers();
+      // Refresh user roles to ensure we have the latest data
+      await fetchUsers();
+      if (selectedUser) {
+        handleUserSelect(selectedUser);
+      }
     } catch (error) {
+      toast.dismiss();
       console.error('Error saving roles:', error);
       toast.error('Failed to update roles');
     } finally {
@@ -238,24 +284,32 @@ const RoleManagement: React.FC = () => {
     }
     
     try {
-      const response = await post('/api/roles', {
+      toast.loading('Creating role...');
+      
+      const response = await api.post('/api/roles', {
         name: newRoleData.name,
         description: newRoleData.description,
         permissions: newRoleData.permissions
-      }) as any;
+      });
       
-      if (response?.data?.success) {
-        // Add new role to the list and refresh
-        fetchInitialData();
-        
+      toast.dismiss();
+      
+      if (response.data?.success) {
         // Reset form
         setCreatingRole(false);
         setNewRoleData({ name: '', description: '', permissions: [] });
         toast.success(`Role "${newRoleData.name}" created successfully`);
+        
+        // Refresh roles data to ensure everything is in sync
+        const updatedRolesResponse = await api.get('/api/roles');
+        if (updatedRolesResponse.data?.success) {
+          setRoles(updatedRolesResponse.data.data || []);
+        }
       } else {
-        toast.error('Failed to create role');
+        toast.error(response.data?.message || 'Failed to create role');
       }
     } catch (error: any) {
+      toast.dismiss();
       console.error('Error creating role:', error);
       const errorMessage = error.response?.data?.message || 'Failed to create role';
       toast.error(errorMessage);
@@ -278,7 +332,42 @@ const RoleManagement: React.FC = () => {
       handleUserSelect(selectedUser);
     }
   };
-console.log(roles, 'Roles Data');
+
+  // New function to handle role deletion
+  const handleDeleteRole = async (roleId: string, roleName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the role "${roleName}"? This will remove all associated permissions and role assignments.`)) {
+      return;
+    }
+
+    try {
+      toast.loading(`Deleting role "${roleName}"...`);
+      
+      const response = await api.delete(`/api/roles/${roleId}`);
+      
+      toast.dismiss();
+      
+      if (response.data?.success) {
+        toast.success(`Role "${roleName}" deleted successfully`);
+        
+        // Remove the deleted role from the local state
+        setRoles(prevRoles => prevRoles.filter(role => role.id !== roleId));
+        
+        // If this role was selected for a user, remove it from selectedRoles
+        if (selectedUser && selectedRoles.includes(roleId)) {
+          setSelectedRoles(prev => prev.filter(id => id !== roleId));
+          setHasChanges(true);
+        }
+      } else {
+        toast.error(response.data?.message || 'Failed to delete role');
+      }
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Error deleting role:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete role';
+      toast.error(errorMessage);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -428,6 +517,7 @@ console.log(roles, 'Roles Data');
                       <th className="px-4 py-2 text-left">Role</th>
                       <th className="px-4 py-2 text-left">Description</th>
                       <th className="px-4 py-2 text-left">Permissions</th>
+                      <th className="px-4 py-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -448,10 +538,21 @@ console.log(roles, 'Roles Data');
                             )}
                           </div>
                         </td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => handleDeleteRole(role.id, role.name)}
+                            className="text-red-400 hover:text-red-500 transition-colors focus:outline-none"
+                            title={`Delete ${role.name} role`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
+                        <td colSpan={4} className="px-4 py-6 text-center text-gray-400">
                           No roles have been created yet
                         </td>
                       </tr>
@@ -463,29 +564,45 @@ console.log(roles, 'Roles Data');
 
             {/* Role assignment */}
             {selectedUser && (
-              <>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-200">
-                    Assign Roles for <span className="text-blue-400">{selectedUser.email}</span>
-                  </h2>
-                  {hasChanges && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleDiscardChanges}
-                        className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
-                      >
-                        Discard Changes
-                      </button>
-                      <button
-                        onClick={handleSaveRoles}
-                        disabled={savingRoles || !hasChanges}
-                        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
-                      >
-                        {savingRoles ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <>
+    <div className="flex justify-between items-center mb-4">
+      <div className="flex items-center space-x-3">
+        <button
+          onClick={() => {
+            if (hasChanges && !window.confirm('You have unsaved changes. Discard them?')) {
+              return;
+            }
+            setSelectedUser(null);
+          }}
+          className="p-2 rounded-md bg-gray-600 hover:bg-gray-700 transition-colors focus:outline-none"
+          title="Back to roles"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h2 className="text-lg font-medium text-gray-200">
+          Assign Roles for <span className="text-blue-400">{selectedUser.email}</span>
+        </h2>
+      </div>
+      {hasChanges && (
+        <div className="flex space-x-2">
+          <button
+            onClick={handleDiscardChanges}
+            className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
+          >
+            Discard Changes
+          </button>
+          <button
+            onClick={handleSaveRoles}
+            disabled={savingRoles || !hasChanges}
+            className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {savingRoles ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      )}
+    </div>
 
                 {loading ? (
                   <div className="flex justify-center py-8">
