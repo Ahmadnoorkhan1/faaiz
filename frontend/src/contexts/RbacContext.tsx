@@ -24,7 +24,6 @@ export const RbacProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [isPermissionLoading, setIsPermissionLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState(0);
   const [useLocalPermissions, setUseLocalPermissions] = useState(true); // Always use local permissions
-
   const fetchPermissions = async () => {
     const now = Date.now();
     if (now - lastFetched < 60000 && lastFetched !== 0) {
@@ -43,45 +42,43 @@ export const RbacProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setLoading(true);
       setIsPermissionLoading(true);
       
-      // Comment out API calls for permissions
-      /* 
+      // Use dynamic permissions from backend API
       try {
-        const [permissionsResponse, rolesResponse] = await Promise.all([
-          get(`/api/roles/users/${user.id}/permissions`),
-          get(`/api/roles/users/${user.id}/roles`)
-        ]) as any;
-
-        const permsList = Array.isArray(permissionsResponse?.data) 
-          ? permissionsResponse.data.map((p: any) => p.name) 
-          : [];
+        // Get permissions from backend
+        const permissionsResponse = await get(`/api/permissions/users/${user.id}/permissions`);
         
-        const rolesList = Array.isArray(rolesResponse?.data) 
-          ? rolesResponse.data.map((r: any) => r.name) 
-          : [];
+        // Get roles from backend
+        const rolesResponse = await get(`/api/roles/users/${user.id}/roles`);
+        
+        // Extract permissions array from response
+        const permsList = permissionsResponse?.data?.data || [];
+        
+        // Extract roles array from response
+        const rolesList = rolesResponse?.data?.data?.map((roleAssignment: any) => 
+          roleAssignment.role.name
+        ) || [];
 
         if (permsList.length > 0) {
           setPermissions(permsList);
-          setRoles(rolesList);
+          setRoles([user.role, ...rolesList]);
           setUseLocalPermissions(false);
           setLastFetched(now);
-          console.log('Using server-side permissions', permsList);
+          console.log('Using dynamic permissions from backend:', permsList);
           return;
         } else {
           setUseLocalPermissions(true);
         }
       } catch (error) {
-        console.warn('Error fetching permissions from backend, using local permissions:', error);
+        console.warn('Error fetching permissions from backend, falling back to local permissions:', error);
         setUseLocalPermissions(true);
       }
-      */
 
-      // Always use local permissions based on user role
-console.log(user.role, "user role");
+      // Fallback to local permissions if API call fails
+      console.log('Fallback: Using local permissions based on role', user.role);
 
       if (user?.role) {
         const userRole = user.role as "ADMIN" | "CONSULTANT" | "CLIENT";
         const localPermissions = getPermissionsByRole(userRole);
-        console.log('Using local permissions based on role', userRole, localPermissions);
         
         setPermissions(localPermissions);
         setRoles([userRole]);

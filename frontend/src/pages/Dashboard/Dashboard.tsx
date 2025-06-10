@@ -12,6 +12,7 @@ const Dashboard: React.FC = () => {
   const [ndaSigned, setNdaSigned] = useState<boolean | null>(null);
   const [ndaLoading, setNdaLoading] = useState<boolean>(false);
 
+
   // Check NDA status for consultants
   useEffect(() => {
     const checkNdaStatus = async () => {

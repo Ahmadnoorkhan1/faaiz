@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { FiUsers } from 'react-icons/fi';
+
 // import { usePermissions } from '../../hooks/usePermissions';
 
 interface SidebarProps {
@@ -242,6 +244,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
               </Link>
             </li>
           ))}
+          {userData && userData.role === 'ADMIN' && (
+            <li>
+              <Link
+                to="/dashboard/users"
+                className={`flex items-center ${isCollapsed ? 'justify-center' : ''} w-full p-2 rounded-xl transition-colors duration-200 relative group ${
+                  isActive('/dashboard/users')
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:bg-gray-800'
+                }`}
+                onMouseEnter={() => isCollapsed && setShowTooltip('Users')}
+                onMouseLeave={() => setShowTooltip(null)}
+              >
+                <FiUsers className="w-6 h-6" />
+                {!isCollapsed && <span className="ml-3">Users</span>}
+                {isCollapsed && showTooltip === 'Users' && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded whitespace-nowrap z-50">
+                    Users
+                  </div>
+                )}
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
 

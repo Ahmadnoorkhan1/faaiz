@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import api, { get, post, update, remove } from '../../service/apiService';
 import { toast } from 'react-hot-toast';
 
-// Updated to match the actual API response structure
-interface PermissionCategory {
+// Update the interface to match the actual permission structure
+interface Permission {
+  id: string;
   name: string;
-  permission: string[];
+  description?: string;
+  resource: string;
+  action: string;
+}
+
+interface PermissionCategory {
+  name: string;  // This is the resource
+  permission: string[];  // This contains the permission names
 }
 
 // Updated to match actual role structure from API
@@ -107,7 +115,12 @@ const RoleManagement: React.FC = () => {
       try {
         const permissionsResponse = await api.get('/api/permissions/available');
         if (permissionsResponse?.data?.success) {
-          setPermissionCategories(permissionsResponse.data.data || []);
+          // Normalize permission categories to always show resource/action
+          const categories = (permissionsResponse.data.data || []).map((cat: PermissionCategory) => ({
+            ...cat,
+            permission: Array.isArray(cat.permission) ? cat.permission : []
+          }));
+          setPermissionCategories(categories);
         } else {
           console.warn('Permissions API returned unexpected format:', permissionsResponse);
           setPermissionCategories([]);
@@ -203,7 +216,7 @@ const RoleManagement: React.FC = () => {
       
       // Determine roles to add and remove
       const rolesToAdd = selectedRoles.filter(roleId => !currentRoleIds.includes(roleId));
-      const rolesToRemove = currentRoleIds.filter(roleId => !selectedRoles.includes(roleId));
+      const rolesToRemove = currentRoleIds.filter((roleId:any) => !selectedRoles.includes(roleId));
       
       // Process role changes
       let successCount = 0;
@@ -258,7 +271,7 @@ const RoleManagement: React.FC = () => {
           )
         );
       } else {
-        toast.warning(`Updated ${successCount} out of ${rolesToAdd.length + rolesToRemove.length} role changes`);
+        console.warn(`Updated ${successCount} out of ${rolesToAdd.length + rolesToRemove.length} role changes`);
       }
       
       setHasChanges(false);
@@ -475,6 +488,8 @@ const RoleManagement: React.FC = () => {
                                 />
                                 <div>
                                   <div className="text-gray-200 text-sm">{permissionName}</div>
+                                  {/* Optionally show resource/action breakdown if needed */}
+                                  {/* <div className="text-xs text-gray-400">{category.name} / {permissionName.split('.').pop()}</div> */}
                                 </div>
                               </label>
                             ))}

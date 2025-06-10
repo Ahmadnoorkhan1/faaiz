@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Store token
       localStorage.setItem('token', token);
-      
+
       // Set user data immediately
       setUser(userData);
       

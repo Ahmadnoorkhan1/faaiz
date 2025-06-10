@@ -7,12 +7,66 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRoleType {
-  CLIENT
-  CONSULTANT
-  ADMIN
+// Remove the UserRoleType enum
+// enum UserRoleType {
+//   CLIENT
+//   CONSULTANT
+//   ADMIN
+// }
+
+// Add missing enums
+enum ConsultantStatus {
+  PENDING_REVIEW
+  INTERVIEW_INVITED
+  INTERVIEW_SCHEDULED
+  REJECTED
+  APPROVED
 }
 
+enum CallStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  DO_NOT_DISTURB
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DocumentType {
+  PROPOSAL
+  REPORT
+  CONTRACT
+  CERTIFICATE
+  OTHER
+}
+
+// Rest of enums remain unchanged
 enum OnboardingStatus {
   // Initial states
   PENDING_DISCOVERY   // Initial state when client/consultant is created
@@ -39,90 +93,30 @@ enum OnboardingStatus {
   COMPLETED           // Deprecated - use ONBOARDED instead
 }
 
-// Add this enum after other enums in schema.prisma
-enum ConsultantStatus {
-  PENDING_REVIEW
-  INTERVIEW_INVITED
-  INTERVIEW_SCHEDULED
-  REJECTED
-  APPROVED
-}
-
-
-// Remove the ServiceType enum and add this model
+// Add missing Service model
 model Service {
-  id          String   @id @default(uuid())
-  name        String   @unique
-
-  scopingForm       ScopingForm?      @relation(fields: [scopingFormId], references: [id])
-  scopingFormId     String? @unique
-
-  serviceProposal   ServiceProposal?  @relation(fields: [serviceProposalId], references: [id])
-  serviceProposalId String? @unique
-
-  clientProfiles     ClientProfile[]      // Many-to-many with ClientProfile
-  consultantProfiles ConsultantProfile[]  // Many-to-many with ConsultantProfile
-  documents          Document[]           // One-to-many with Document
-
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+  
+  // Relations
+  clients          ClientProfile[]
+  consultants      ConsultantProfile[]
+  documents        Document[]
+  scopingForms     ScopingForm[]
+  serviceProposals ServiceProposal[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum CallStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum DocumentType {
-  PROPOSAL
-  REPORT
-  CONTRACT
-  CERTIFICATE
-  OTHER
-}
-
-enum ProjectStatus {
-  ACTIVE
-  COMPLETED
-  ON_HOLD
-  CANCELLED
-}
-
-enum PermissionType {
-  READ
-  WRITE
-  DELETE
-  ADMIN
-}
-
-enum UserStatus {
-  ONLINE
-  OFFLINE
-  AWAY
-  DO_NOT_DISTURB
-}
-
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  REVIEW
-  DONE
-}
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
+// Update User model with string role field instead of enum
 model User {
   id                String             @id @default(uuid())
   email             String             @unique
   password          String
-  role              UserRoleType       @default(CLIENT)
+  role              String             @default("CLIENT") // Changed from UserRoleType enum to String
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   clientProfile     ClientProfile?
@@ -203,7 +197,7 @@ model ClientProfile {
   updatedAt DateTime @updatedAt
 
   // Service (one-to-many)
-  service   Service  @relation(fields : [serviceId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   serviceId String
 }
 
@@ -235,11 +229,11 @@ model ConsultantProfile {
 
   profileCompleted Boolean          @default(false)
   onboardingStatus OnboardingStatus @default(NOT_STARTED)
-  status             ConsultantStatus @default(PENDING_REVIEW)
-  interviewScore     Float?           // Optional score from 0-5
-  reviewNotes        String?          // Admin notes about the consultant
-  interviewDate      DateTime?        // When interview is scheduled
-  isAllowedToLogin  Boolean  @default(false) // New column
+  status           ConsultantStatus @default(PENDING_REVIEW)
+  interviewScore   Float?           // Optional score from 0-5
+  reviewNotes      String?          // Admin notes about the consultant
+  interviewDate    DateTime?        // When interview is scheduled
+  isAllowedToLogin Boolean          @default(false) // New column
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -268,8 +262,8 @@ model Document {
   title        String?
   description  String? 
   documentType String       @default("PROPOSAL")
-   service     Service? @relation(fields: [serviceId], references: [id])
-  serviceId   String?
+  service      Service?     @relation(fields: [serviceId], references: [id])
+  serviceId    String?
   uploadedBy   User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
   uploadedById String
   client       User?        @relation("ClientDocuments", fields: [clientId], references: [id])
@@ -311,7 +305,7 @@ model Phase {
   title       String
   order       Int
   projectId   String?
-  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   subPhases   SubPhase[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -344,12 +338,13 @@ model RoleDefinition {
 }
 
 model Permission {
-  id          String        @id @default(uuid())
-  name        String        @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  type        String        // The category of permission (e.g., "users", "projects", etc.)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  resource    String  // The resource being accessed (e.g., "users", "projects", etc.)
+  action      String  // The action being performed (e.g., "create", "read", "update", "delete")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 
@@ -385,8 +380,8 @@ model ChatRoom {
   // Relations
   messages     Message[]
   participants ChatRoomParticipant[]
-  projectId    String? // Optional connection to a project
-  project      Project?              @relation(fields: [projectId], references: [id])
+  projectId    String?  // Optional connection to a project
+  project      Project? @relation(fields: [projectId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -465,40 +460,39 @@ model EventAttendee {
   @@id([eventId, userId])
 }
 
-model ScopingForm{
+model ScopingForm {
   id          String   @id @default(uuid())
-  service     Service? @relation
+  service     Service? @relation(fields: [serviceId], references: [id])
   serviceId   String?
   
   // Store questions and options as JSON arrays
-  questions   Json        // [{id: string, text: string, type: string, options: string[], required: boolean}]
-  answers     Json?       // [{questionId: string, answer: string}] - Optional since form may not be filled yet
+  questions   Json     // [{id: string, text: string, type: string, options: string[], required: boolean}]
+  answers     Json?    // [{questionId: string, answer: string}] - Optional since form may not be filled yet
   
   // Relations
-  client      User? @relation("ClientScopingForms", fields: [clientId], references: [id])
+  client      User?   @relation("ClientScopingForms", fields: [clientId], references: [id])
   clientId    String?
 
-  createdBy   User @relation("CreatedScopingForms", fields: [createdById], references: [id])
+  createdBy   User    @relation("CreatedScopingForms", fields: [createdById], references: [id])
   createdById String
   
-  status      String      @default("pending") // pending, submitted, approved
+  status      String  @default("pending") // pending, submitted, approved
   
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([clientId, serviceId]) // Updated to use serviceId instead of service
 }
 
 //Generate Proposal
-
 model ServiceProposal {
-  id           String      @id @default(uuid())
-  service      Service?    @relation
+  id           String    @id @default(uuid())
+  service      Service?  @relation(fields: [serviceId], references: [id])
   serviceId    String
   phases       Json        
   timeline     Json        
   deliverables Json 
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt       
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt       
 }
 

@@ -37,11 +37,11 @@ export const authController = {
       });
 
       // Generate JWT token
-      const token = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
+     const token = jwt.sign(
+  { id: user.id, role: user.role }, // Include role in token payload
+  process.env.JWT_SECRET,
+  { expiresIn: '30d' }
+);
 
       res.status(201).json({
         success: true,
@@ -99,11 +99,11 @@ export const authController = {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+   const token = jwt.sign(
+  { id: user.id, role: user.role }, // Include role in token payload
+  process.env.JWT_SECRET,
+  { expiresIn: '30d' }
+);
 
     // Remove password and sensitive data from response
     const { password: _, consultantProfile, ...userDataForResponse } = user;

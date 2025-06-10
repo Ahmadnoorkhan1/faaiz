@@ -3,14 +3,14 @@ import { authenticateToken } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/auth.js';
 import { 
   getAllRoles,
-  getRoleById,
+  getRoleById, 
   createRole,
   updateRole,
   deleteRole,
   assignRoleToUser,
   removeRoleFromUser,
   getUserRoles,
-  getUserPermissions
+  getAllPermissions
 } from '../controllers/roleController.js';
 
 const router = express.Router();
@@ -35,7 +35,7 @@ router.post('/remove', authorize('ADMIN'), removeRoleFromUser);
 // Get user roles
 router.get('/users/:userId/roles', getUserRoles);
 
-// Get user permissions
-router.get('/users/:userId/permissions', getUserPermissions);
+// Get all permissions
+router.get('/permissions', getAllPermissions);
 
 export default router;

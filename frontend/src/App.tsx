@@ -44,6 +44,7 @@ import Schedule from "./pages/Dashboard/Schedule";
 import RoleManagement from "./pages/Dashboard/RoleManagement";
 import Configurations from "./pages/configurations";
 import RbacTester from "./components/RbacTester";
+import UserManagement from "./pages/Dashboard/UserManagement";
 
 // Create a separate component for the app content
 const AppContent: React.FC = () => {
@@ -128,6 +129,7 @@ const AppContent: React.FC = () => {
             <Route path="/scheduled-calls" element={<ScheduledCalls />} />
             <Route path="/schedule-call" element={<ScheduleCall />} />
             <Route path="/documents" element={<Documents />} />
+<Route path="/dashboard/users" element={<UserManagement />} />
             {/* <Route path="/teams-channels" element={<TeamsChannels />} /> */}
             
             {/* New routes */}

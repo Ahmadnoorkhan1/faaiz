@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import { connectDB } from "./config/db.js";
-// import { errorHandler } from "./src/middleware/error.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import consultantRoutes from "./routes/consultantRoutes.js";
@@ -19,8 +18,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import scopingFormRoutes from './routes/ScopingFormRoutes.js';
 import proposalRoutes from './routes/proposalRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
-// import userRoutes from "./src/routes/userRoutes.js";
-// import clientRoutes from "./src/routes/clientRoutes.js";
+import userRoutes from './routes/userRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -45,7 +43,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use('/uploads', express.static('uploads')); // Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -55,22 +53,19 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/microsoft', microsoftAuthRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
-app.use('/api/roles', roleRoutes);
+app.use('/api/roles', roleRoutes);  
 app.use('/api/config', configRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/scoping-forms', scopingFormRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/services', serviceRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
   res.send('GRC Application API is running');
 });
-
-// Error handling middleware
-// app.use(errorHandler);
 
 // Port
 const PORT = process.env.PORT || 5000;
